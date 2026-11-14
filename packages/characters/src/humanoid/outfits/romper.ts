@@ -1,0 +1,7 @@
+import type { Outfit } from './outfits';
+
+/** A one-piece romper: a sleeveless top and shorts, and shoes. All paint, no block added. */
+export const romper: Outfit = {
+  paint: { chest: 'top', waist: 'top', hips: 'top', thighs: 'top', feet: 'shoes' },
+  colors: { top: 0xf2a7b5, shoes: 0xfbf3e4 },
+};

@@ -1,0 +1,97 @@
+import { BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group, Mesh, MeshLambertMaterial, type Object3D } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import type { Body, Box, Face, FaceState, FeatureName, JointName, Pose, Role, Socket, Worn } from './packages/characters/src';
+
+/** A character drawn with Three.js, one voxel to one unit. It stands on y = 0 and faces +z. */
+export interface Figure {
+  readonly root: Group;
+  /** Turns the joints to a pose. Call each frame with the pose of the moment. */
+  pose(pose: Pose): void;
+  /** Shows the face as it is at this moment: one shape for every feature. */
+  showFace(state: FaceState): void;
+  /** Hangs an object on a socket: it sits on the socket's spot and moves with the socket's joint. */
+  attach(object: Object3D, socket: Socket): void;
+  /** Frees the figure's own meshes. Whoever attached an object frees that object. */
+  dispose(): void;
+}
+
+/** One mesh for a set of blocks, each block colored by its role. */
+function geometryOf(boxes: readonly Box[], colors: Record<Role, number>): BufferGeometry {
+  const color = new Color();
+  const pieces = boxes.map((box) => {
+    const [w, h, d] = box.size;
+    const piece = new BoxGeometry(w, h, d).translate(box.at[0] + w / 2, box.at[1] + h / 2, box.at[2] + d / 2);
+    color.setHex(colors[box.role]);
+    const count = piece.getAttribute('position').count;
+    piece.setAttribute('color', new Float32BufferAttribute(Array.from({ length: count }, () => [color.r, color.g, color.b]).flat(), 3));
+    return piece;
+  });
+  const merged = mergeGeometries(pieces);
+  for (const piece of pieces) piece.dispose();
+  if (merged === null) throw new Error('The blocks could not be merged.');
+  return merged;
+}
+
+/**
+ * Builds a figure from a body, a face, and whatever it wears. Each joint is a
+ * group placed at its pivot, so turning a group turns everything hanging from
+ * it. Every shape of every face feature gets a mesh of its own, and only the
+ * shapes of the moment show.
+ */
+export function createFigure(body: Body, face: Face, worn: readonly Worn[], colors: Record<Role, number>): Figure {
+  const root = new Group();
+  const material = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const geometries: BufferGeometry[] = [];
+  const joints = new Map<JointName, Group>();
+  for (const joint of body.joints) {
+    const group = new Group();
+    group.position.set(...joint.at);
+    (joint.parent === null ? root : joints.get(joint.parent))?.add(group);
+    joints.set(joint.name, group);
+  }
+
+  const addMesh = (boxes: readonly Box[], joint: JointName): Mesh => {
+    const geometry = geometryOf(boxes, colors);
+    geometries.push(geometry);
+    const mesh = new Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    joints.get(joint)?.add(mesh);
+    return mesh;
+  };
+  for (const part of body.parts) addMesh(part.boxes, part.joint);
+  for (const piece of worn) addMesh(piece.boxes, piece.joint);
+
+  const faceMeshes: { feature: FeatureName; shape: string; mesh: Mesh }[] = [];
+  for (const [feature, byShape] of Object.entries(face.shapes) as [FeatureName, Record<string, readonly Box[]>][]) {
+    for (const [shape, boxes] of Object.entries(byShape)) {
+      // A shape such as "no blush" has nothing to draw.
+      if (boxes.length > 0) faceMeshes.push({ feature, shape, mesh: addMesh(boxes, face.joint) });
+    }
+  }
+
+  const pelvis = body.joints.find((joint) => joint.parent === null);
+  const restHeight = pelvis?.at[1] ?? 0;
+
+  return {
+    root,
+    pose({ lift, turns }) {
+      for (const [name, group] of joints) {
+        const turn = turns[name];
+        group.rotation.set(turn?.[0] ?? 0, turn?.[1] ?? 0, turn?.[2] ?? 0);
+      }
+      if (pelvis !== undefined) joints.get(pelvis.name)?.position.setY(restHeight + lift);
+    },
+    showFace(state) {
+      for (const { feature, shape, mesh } of faceMeshes) mesh.visible = state[feature] === shape;
+    },
+    attach(object, socket) {
+      object.position.set(...socket.at);
+      joints.get(socket.joint)?.add(object);
+    },
+    dispose() {
+      for (const geometry of geometries) geometry.dispose();
+      material.dispose();
+    },
+  };
+}
