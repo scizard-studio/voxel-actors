@@ -118,12 +118,18 @@ h1 {
 }
 
 aside {
+  min-height:0;
   background:#fff;
   border-left:1px solid #e2e7df;
   padding:28px;
-  overflow:auto;
   display:flex;
   flex-direction:column
+}
+
+.inspector-content {
+  flex:1;
+  min-height:0;
+  overflow:auto;
 }
 
 .panel-top {
@@ -290,8 +296,10 @@ select:focus-visible {
 }
 
 .panel-note {
-  margin-top:auto;
-  padding-top:38px;
+  flex-shrink:0;
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid #e2e7df;
   font-size:11px;
   line-height:1.8;
   color:#6e7f72
@@ -300,6 +308,32 @@ select:focus-visible {
 .panel-note span {
   font-size:10px;
   color:#a0aaa1
+}
+
+#total-voxels {
+  margin-top:10px;
+  color:#456b5d;
+  font-size:14px;
+  font-weight:600;
+}
+
+.voxel-count {
+  padding:14px 16px;
+  border-radius:8px;
+  background:#edf4ef;
+}
+
+.voxel-count strong {
+  display:block;
+  font-size:20px;
+  font-weight:500;
+}
+
+.voxel-count span {
+  display:block;
+  margin-top:5px;
+  font-size:10px;
+  color:#7d9083;
 }
 
 @media(max-width:700px) {

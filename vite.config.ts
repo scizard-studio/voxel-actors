@@ -15,7 +15,6 @@ export default defineConfig({
     rolldownOptions: {
       input: {
         studio: 'index.html',
-        characterStudy: 'character-study/index.html',
       },
     },
   },

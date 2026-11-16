@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["*.ts", "packages/characters/src", "props", "tests", "character-study"]
+  "include": ["*.ts", "anatomy", "packages/characters/src", "props", "tests", "character-study"]
 }
