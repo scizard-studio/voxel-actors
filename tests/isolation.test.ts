@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 
-// Studio source files, excluding the bundled character library and tests.
-const sources = import.meta.glob<string>(['../**/*.ts', '!../packages/**', '!../tests/**'], { query: '?raw', import: 'default', eager: true });
+// Application sources, excluding build configuration, the bundled library and tests.
+const sources = import.meta.glob<string>(['../**/*.ts', '!../vite.config.ts', '!../packages/**', '!../tests/**'], { query: '?raw', import: 'default', eager: true });
 const IMPORT = /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 /** Resolves a relative import within the studio directory. */
