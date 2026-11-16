@@ -1,190 +1,112 @@
-import { Color, DirectionalLight, HemisphereLight, PCFSoftShadowMap, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import {
-  clips,
-  createBody,
-  createFace,
-  createHair,
-  createHat,
-  createMotion,
-  dress,
-  everydayOutfits,
-  faceAt,
-  faceOptionsFor,
-  hairUnder,
-  outfits,
-  type Body,
-  type Dressed,
-  type EverydayOutfitName,
-  type OutfitName,
-  type Worn,
-} from './packages/characters/src';
-import { createFigure, type Figure } from './figure';
-import type { HeldProp } from './props/pieces';
-import { holdProp } from './props/props';
-import { clothColors, hairColors, roleColors, skinTones } from './palette';
-import { createPanel, type StudioState } from './panel';
-import { METRES_PER_VOXEL, createScaleGuide } from './scaleGuide';
-import { addSocketMarkers, type SocketMarkers } from './socketMarkers';
-import './studio.css';
+import { createBody, type JointName } from './packages/characters/src';
+import { hairColors, roleColors, skinTones } from './palette';
+import './anatomy.css';
 
-const MS = 1000;
-// Where the camera looks: about the chest of an adult.
-const LOOK_AT_Y = 20;
-const VIEWS = {
-  front: [0, 24, 125],
-  threeQuarter: [70, 48, 105],
-} as const;
-// How far the sun's shadows reach around the figure, in voxels.
-const SHADOW_REACH = 100;
-
-/**
- * The Character Studio: shape a character with the character library and see
- * it move, beside a wall and door of the town's size. It is a tool, not part
- * of the game, and uses nothing of the game or its engine.
- */
-function startStudio(): void {
-  const state: StudioState = {
-    age: 'adult',
-    gender: 'female',
-    tone: 0,
-    hair: 'longParted',
-    hairColor: 0,
-    outfit: 'romper',
-    clothColor: null,
-    hat: null,
-    expression: 'happy',
-    clip: 'idle',
-    guide: true,
-    sockets: false,
-  };
-  // Kept across rebuilds, so a new body carries on with what the old one was doing.
-  const motion = createMotion(state.clip);
-
-  const layout = document.createElement('div');
-  layout.className = 'studio';
-  document.body.append(layout);
-  const stage = document.createElement('main');
-  stage.className = 'studio__stage';
-
-  const renderer = new WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFSoftShadowMap;
-  stage.append(renderer.domElement);
-
-  const scene = new Scene();
-  scene.background = new Color(0xf4ead2);
-  const camera = new PerspectiveCamera(34, 1, 1, 4000);
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.maxPolarAngle = Math.PI / 2 - 0.02;
-
-  scene.add(new HemisphereLight(0xfff8e6, 0xb2a47f, 2.2));
-  const sun = new DirectionalLight(0xffe7bc, 2.6);
-  sun.position.set(-60, 120, 80);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, {
-    left: -SHADOW_REACH,
-    right: SHADOW_REACH,
-    top: SHADOW_REACH,
-    bottom: -SHADOW_REACH,
-    near: 1,
-    far: 400,
+// Outfit studies are preserved in character-study/, inactive in this anatomy mock.
+document.body.innerHTML = `
+  <header><div class="brand"><span class="brand-icon">◇</span> Character Anatomy</div><span class="badge">DESIGN STUDY</span></header>
+  <main><section class="viewport" aria-label="Interactive character body"><div class="stage-heading"><span class="eyebrow">THE FOUNDATION</span><h1>A closer look.</h1><p>Select a part to explore its anatomy.</p></div><div class="canvas-host"></div><div class="view-hint">Drag to rotate <span>·</span> Scroll to zoom</div></section>
+  <aside aria-label="Body part information"><div class="panel-top"><span class="eyebrow">INSPECTOR</span><span class="status-dot"></span></div><div id="details" aria-live="polite"></div><div class="part-picker"><label for="part">BODY PART</label><select id="part"><option value="">Select a body part</option></select></div><div class="panel-note">Original Studio body<br><span>Adult · Female · Voxel units</span></div></aside></main>`;
+const host = document.querySelector<HTMLDivElement>('.canvas-host')!;
+const details = document.querySelector<HTMLDivElement>('#details')!;
+const picker = document.querySelector<HTMLSelectElement>('#part')!;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+host.append(renderer.domElement);
+const scene = new THREE.Scene();
+const body = createBody({ age: 'adult', gender: 'female' });
+const colors = roleColors(skinTones[0], hairColors[0]);
+const joints = new Map<JointName, THREE.Vector3>();
+for (const joint of body.joints) {
+  joints.set(joint.name, new THREE.Vector3(...joint.at).add(joint.parent ? joints.get(joint.parent)! : new THREE.Vector3()));
+}
+interface Region { name: string; joint: JointName; meshes: THREE.Mesh<THREE.BoxGeometry, THREE.MeshLambertMaterial>[]; bounds: THREE.Box3 }
+const regions: Region[] = [];
+const targets: THREE.Mesh[] = [];
+function regionName(part: string, index: number): string {
+  const side = part.endsWith('Left') ? 'Left' : 'Right';
+  if (part === 'head') return 'Head';
+  if (part === 'pelvis') return 'Hips';
+  if (part === 'torso') return ['Waist', 'Chest', 'Neck'][index];
+  if (part.startsWith('upperArm')) return side + ' upper arm';
+  if (part.startsWith('lowerArm')) return side + (index === 0 ? ' forearm' : ' hand');
+  if (part.startsWith('upperLeg')) return side + ' thigh';
+  return side + (index === 0 ? ' shin' : ' foot');
+}
+for (const part of body.parts) {
+  part.boxes.forEach((box, index) => {
+    const name = regionName(part.name, index);
+    let region = regions.find(item => item.name === name);
+    if (!region) { region = { name, joint: part.joint, meshes: [], bounds: new THREE.Box3() }; regions.push(region); }
+    const material = new THREE.MeshLambertMaterial({ color: colors[box.role] });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(...box.size), material);
+    mesh.position.copy(joints.get(part.joint)!).add(new THREE.Vector3(...box.at)).add(new THREE.Vector3(...box.size).multiplyScalar(0.5));
+    mesh.userData.region = region;
+    mesh.userData.baseColor = colors[box.role];
+    scene.add(mesh);
+    mesh.updateMatrixWorld();
+    region.bounds.union(new THREE.Box3().setFromObject(mesh));
+    region.meshes.push(mesh);
+    targets.push(mesh);
   });
-  sun.target.position.set(0, LOOK_AT_Y, 0);
-  scene.add(sun, sun.target);
-
-  const guide = createScaleGuide();
-  scene.add(guide);
-
-  const view = (name: keyof typeof VIEWS): void => {
-    const [x, y, z] = VIEWS[name];
-    camera.position.set(x, y, z);
-    controls.target.set(0, LOOK_AT_Y, 0);
-    controls.update();
-  };
-
-  let body: Body | null = null;
-  let figure: Figure | null = null;
-  let markers: SocketMarkers | null = null;
-  let prop: HeldProp | null = null;
-  const rebuild = (): void => {
-    if (figure !== null) {
-      scene.remove(figure.root);
-      figure.dispose();
-    }
-    markers?.dispose();
-    prop?.dispose();
-    const bare = createBody({ age: state.age, gender: state.gender });
-    const dressed = dressAsPicked(bare, state);
-    body = dressed ?? bare;
-    const face = createFace(body.head.face, faceOptionsFor(state.gender));
-    // With no hat picked, an outfit's own hat is worn.
-    const hatStyle = state.hat ?? (state.outfit === null ? null : outfits[state.outfit].hat) ?? null;
-    const hat = hatStyle === null ? null : createHat(hatStyle, body.head);
-    const hair = state.hair === null ? null : createHair(state.hair, body.head);
-    // Hair under a hat is cut off at the hat.
-    const worn: Worn[] = [];
-    if (hair !== null) worn.push(hat === null ? hair : hairUnder(hair, hat));
-    if (hat !== null) worn.push(hat);
-    const colors = roleColors(skinTones[state.tone], hairColors[state.hairColor], dressed?.colors);
-    figure = createFigure(body, face, worn, colors);
-    markers = state.sockets ? addSocketMarkers(figure, body.sockets) : null;
-    prop = holdProp(figure, body, worn, state.clip);
-    scene.add(figure.root);
-    guide.visible = state.guide;
-    panel.setReadout(`${body.height} voxels tall, about ${(body.height * METRES_PER_VOXEL).toFixed(2)} m`);
-  };
-
-  const panel = createPanel(layout, state, rebuild, view);
-  layout.append(stage);
-  rebuild();
-  view('threeQuarter');
-
-  new ResizeObserver(() => {
-    const width = Math.max(stage.clientWidth, 1);
-    const height = Math.max(stage.clientHeight, 1);
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }).observe(stage);
-
-  const frame = (now: number): void => {
-    const seconds = now / MS;
-    // Picking another motion glides into it. Asking for the one already playing changes nothing.
-    motion.play(state.clip, seconds);
-    if (figure !== null && body !== null) {
-      figure.pose(motion.poseAt(seconds, body));
-      // Held things show once the arms have glided into the pose that holds them.
-      prop?.show(!motion.gliding(seconds));
-      prop?.update(motion.elapsed(seconds));
-      // A motion may move the face too, as talking moves the mouth.
-      const face = faceAt(state.expression, seconds);
-      const moving = clips[motion.clip].face;
-      figure.showFace(moving === undefined ? face : moving(face, motion.elapsed(seconds), 0));
-    }
-    controls.update();
-    renderer.render(scene, camera);
-    requestAnimationFrame(frame);
-  };
-  requestAnimationFrame(frame);
 }
-
-/**
- * The body in the outfit picked, or null for none. An everyday outfit takes the cloth color picked;
- * a work outfit keeps its own.
- */
-function dressAsPicked(body: Body, state: StudioState): Dressed | null {
-  const { outfit, clothColor } = state;
-  if (outfit === null) return null;
-  const color = clothColor === null ? undefined : clothColors[clothColor].color;
-  return isEveryday(outfit) ? dress(body, outfit, color) : dress(body, outfit);
+for (const [index, region] of regions.entries()) picker.add(new Option(region.name, String(index)));
+const number = (n: number): string => String(Math.round(n * 100) / 100);
+function select(region?: Region): void {
+  for (const mesh of targets) (mesh.material as THREE.MeshLambertMaterial).color.setHex(mesh.userData.baseColor);
+  if (!region) {
+    picker.value = '';
+    details.innerHTML = '<div class="empty-icon">⌖</div><h2>Start with a part.</h2><p class="description">Click the character to see its dimensions, position, and connected joint.</p><div class="empty-line"></div><p class="small-note">Every piece has a place.</p>';
+    return;
+  }
+  for (const mesh of region.meshes) mesh.material.color.setHex(0x77bcb0);
+  picker.value = String(regions.indexOf(region));
+  const size = region.bounds.getSize(new THREE.Vector3());
+  const center = region.bounds.getCenter(new THREE.Vector3());
+  details.innerHTML = `<div class="selected-tag">SELECTED PART</div><h2>${region.name}</h2><p class="description">A piece of the original Studio base body.</p><h3>Dimensions <span>VOXELS</span></h3><div class="metrics">${['Width', 'Height', 'Depth'].map((label, i) => `<div><strong>${number(size.getComponent(i))}</strong><span>${label}</span></div>`).join('')}</div><h3>Position <span>CENTER · WORLD</span></h3><div class="coordinates">${['X', 'Y', 'Z'].map((label, i) => `<div><span>${label}</span><b>${number(center.getComponent(i))}</b></div>`).join('')}</div><h3>Connected joint</h3><div class="joint"><span>◇</span> ${region.joint}</div><p class="small-note">Dimensions describe the outer bounds.<br>Left and right follow the character.</p>`;
 }
-
-function isEveryday(name: OutfitName): name is EverydayOutfitName {
-  return name in everydayOutfits;
+picker.addEventListener('change', () => select(picker.value === '' ? undefined : regions[Number(picker.value)]));
+select();
+const camera = new THREE.OrthographicCamera(-24, 24, 24, -24, 0.1, 500);
+camera.position.set(42, 31, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, body.height / 2, 0);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.minZoom = 0.65;
+controls.maxZoom = 2;
+controls.update();
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc2bfba, 2.1));
+const sun = new THREE.DirectionalLight(0xfff3e0, 2.3);
+sun.position.set(-60, 120, 80);
+scene.add(sun);
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+function hit(event: PointerEvent): Region | undefined {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+  return raycaster.intersectObjects(targets, false)[0]?.object.userData.region as Region | undefined;
 }
-
-startStudio();
+let start = new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown', e => { start.set(e.clientX, e.clientY); });
+renderer.domElement.addEventListener('pointerup', e => { if (start.distanceTo(new THREE.Vector2(e.clientX, e.clientY)) < 5) select(hit(e)); });
+renderer.domElement.addEventListener('pointermove', e => { renderer.domElement.style.cursor = hit(e) ? 'pointer' : 'grab'; });
+addEventListener('keydown', e => { if (e.key === 'Escape') select(); });
+function resize(): void {
+  const width = host.clientWidth;
+  const height = host.clientHeight;
+  const aspect = width / height;
+  const frame = Math.max(body.height + 9, 23 / aspect);
+  camera.left = -frame * aspect / 2;
+  camera.right = frame * aspect / 2;
+  camera.top = frame / 2;
+  camera.bottom = -frame / 2;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+}
+new ResizeObserver(resize).observe(host);
+resize();
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });

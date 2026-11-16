@@ -37,25 +37,39 @@ export function createBehanceCharacter(look: Look): Group {
     }
   }
 
-  // Compact torso with a gently tucked waist, rounded shoulders and a short neck.
-  // Continuous half-voxel courses keep the waist soft instead of separating
-  // chest, waist and hips into three visibly stacked blocks.
-  for (let row = 0; row < 22; row++) {
-    const y = 9.25 + row * 0.5;
-    const width = y < 12 ? 7.25 : y < 14.5 ? 6.75 : y < 17 ? 7.25 : 7.75;
-    box(0, y, 0, width, 0.5, 4.25, skin);
-    box(0, y, 0, width - 0.5, 0.5, 4.75, skin);
+  // Interpolated cross-sections produce small voxel steps around the silhouette.
+  function section(x: number, y: number, z: number, width: number, depth: number): void {
+    box(x, y, z, width, 0.25, depth - 0.75, skin);
+    box(x, y, z, width - 0.375, 0.25, depth - 0.25, skin);
+    box(x, y, z, width - 0.75, 0.25, depth, skin);
   }
-  box(0, 20, 0, 3.25, 2.5, 3, skin);
+  const torsoProfile = [
+    [9.25, 6.25, 3.75], [10.25, 7.25, 4.5], [11.5, 7.5, 4.75],
+    [13.5, 6.5, 4.25], [15.25, 6.75, 4.5], [17.75, 7.5, 4.75],
+    [19, 7.25, 4.5], [20.25, 4.5, 3.5],
+  ];
+  for (let y = 9.25; y < 20.25; y += 0.25) {
+    const end = torsoProfile.findIndex(point => point[0] > y);
+    const a = torsoProfile[end - 1];
+    const b = torsoProfile[end];
+    const t = (y - a[0]) / (b[0] - a[0]);
+    section(0, y, 0, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t);
+  }
+  box(0, 19.75, 0, 2.75, 2.25, 2.75, skin);
   for (const side of [-1, 1]) {
-    // Knees, ankles, and hands stay distinct in silhouette without dark seam bands.
-    bevel(side * 1.875, 4.75, 0, 3, 5.25, 3.25, 0.25, skin);
-    bevel(side * 1.875, 1, 0, 2.5, 4.75, 2.75, 0.25, skin);
-    bevel(side * 1.875, 0, 0.625, 2.75, 1.5, 4, 0.25, skin);
-    bevel(side * 4.625, 15, 0, 2.5, 5, 2.75, 0.375, skin);
-    bevel(side * 4.875, 11.25, 0.125, 2.25, 4.75, 2.5, 0.25, skin);
-    bevel(side * 5, 9.75, 0.25, 2.25, 2.75, 2.75, 0.25, skin);
-    box(side * 3.95, 10.6, 1.125, 0.5, 1.125, 0.75, skin);
+    for (let y = 1; y < 10.5; y += 0.25) {
+      const width = y < 5 ? 2.125 + 0.5 * Math.sin((y - 1) / 4 * Math.PI) : 2.5 + (y - 5) * 0.125;
+      section(side * 1.875, y, 0, width, width + 0.25);
+    }
+    bevel(side * 1.875, 0, 0.625, 2.625, 1.375, 3.875, 0.25, skin);
+    for (let y = 11.5; y < 19.75; y += 0.25) {
+      const shoulder = Math.max(0, (y - 18.5) / 1.25);
+      const width = (y < 15 ? 1.875 + (y - 11.5) * 0.1 : 2.25) - shoulder * 0.75;
+      const x = 4.75 - Math.max(0, y - 16) * 0.16;
+      section(side * x, y, 0, width, width + 0.25);
+    }
+    bevel(side * 4.75, 9.75, 0.25, 2, 2.5, 2.5, 0.375, skin);
+    box(side * 3.875, 10.5, 0.875, 0.5, 1, 0.75, skin);
   }
 
   if (look === 'dressed') {
@@ -130,6 +144,7 @@ export function createBehanceCharacter(look: Look): Group {
     box(0, 21.25, 2.375, 0.5, 0.5, 0.25, ivory);
   }
 
+  const headStart = blocks.length;
   // The face has full cheeks and a small rounded jaw; its front remains one plane.
   const headRows = [
     [22, 0.5, 9.5, 6.5], [22.5, 0.5, 11, 7],
@@ -184,6 +199,15 @@ export function createBehanceCharacter(look: Look): Group {
     }
   }
 
+  // Fit the entire head assembly together so eyes, ears and hair retain alignment.
+  // A slightly smaller head and shorter visible neck balance the compact body.
+  for (const block of blocks.slice(headStart)) {
+    for (const point of [block.min, block.max]) {
+      point[0] *= 0.96;
+      point[1] = 22 + (point[1] - 22) * 0.96 - 0.5;
+      point[2] *= 0.95;
+    }
+  }
   const mesh = new Mesh(sculptGeometry(blocks), new MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
   mesh.castShadow = true;
   mesh.receiveShadow = true;
