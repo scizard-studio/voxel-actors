@@ -224,7 +224,7 @@ const HEAD_LIFT = 0.6;
 // Ears are this tall, their top this far below the top of the head, level with the eyes. They start
 // this far in from the back of the head, so they sit on its voxels whatever its depth, are this
 // deep, and stand out this far from its side.
-const EAR = { height: 4, belowTop: 3, inFromBack: 2, deep: 3, reach: 1 };
+const EAR = { height: 4, belowTop: 5, inFromBack: 2, deep: 3, reach: 1 };
 
 /** A block centred left to right and front to back on the pivot, hanging down from it. */
 function hanging(width: number, height: number, depth: number, region: BodyRegionId, top = 0): BodyBox {
@@ -252,7 +252,7 @@ function upperArmLeft(thick: number, length: number): BodyBox[] {
 
 /** The measurements of a head of this size: its face inside the cut-back edges, and its ears. */
 function headShape([width, height, depth]: Size3): HeadShape {
-  const earTop = height - EAR.belowTop;
+  const earTop = Math.max(BEVEL + EAR.height, height - EAR.belowTop);
   const earBack = -depth / 2 + EAR.inFromBack;
   return {
     width,
