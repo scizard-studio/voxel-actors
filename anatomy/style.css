@@ -267,16 +267,26 @@ h3 span {
   margin-right:7px
 }
 
+.inspector-controls {
+  display:grid;
+  gap:12px;
+  margin-bottom:24px;
+}
+
 .part-picker {
   margin-top:28px
 }
 
-.part-picker label {
+.inspector-controls label {
   display:block;
   font-size:9px;
   letter-spacing:1.3px;
   color:#95a096;
   margin-bottom:9px
+}
+
+.inspector-controls select {
+  margin-top:5px;
 }
 
 select {

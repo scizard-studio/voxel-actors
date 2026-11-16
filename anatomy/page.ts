@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
   createBody, createFace, expressions, faceBoxes, faceOptionsFor, colorOf, measureBody, isBodyRegion,
-  type BodyRegionId, type Box, type ExpressionName, type FaceState, type JointName,
+  type Age, type Gender, type BodyRegionId, type Box, type ExpressionName, type FaceState, type JointName,
 } from '../packages/characters/src';
 import { renderInspector, formatVoxelCount } from './inspector';
 import './style.css';
@@ -11,22 +11,42 @@ document.title = 'Character Anatomy';
 document.body.innerHTML = `
   <header><div class="brand"><span class="brand-icon">◇</span> Character Anatomy</div><span class="badge">ANATOMY</span></header>
   <main><section class="viewport" aria-label="Interactive character body"><div class="stage-heading"><span class="eyebrow">THE FOUNDATION</span><h1>A closer look.</h1><p>Select a part to explore its anatomy.</p></div><div class="canvas-host"></div><div class="view-hint">Drag to rotate <span>·</span> Scroll to zoom</div></section>
-  <aside aria-label="Body part information"><div class="inspector-content"><div class="panel-top"><span class="eyebrow">INSPECTOR</span><span class="status-dot"></span></div><div id="details" aria-live="polite"></div><div class="part-picker"><label for="part">BODY PART</label><select id="part"><option value="">Select a body part</option></select></div></div><footer class="panel-note">Original Studio body<br><span>Adult · Female · Voxel units</span><div id="total-voxels"></div></footer></aside></main>`;
+  <aside aria-label="Body part information"><div class="inspector-content"><div class="panel-top"><span class="eyebrow">INSPECTOR</span><span class="status-dot"></span></div><div class="inspector-controls"></div><div id="details" aria-live="polite"></div></div><footer class="panel-note">Original Studio body<br><span id="body-preset"></span><div id="total-voxels"></div></footer></aside></main>`;
 const host = document.querySelector<HTMLDivElement>('.canvas-host')!;
 const details = document.querySelector<HTMLDivElement>('#details')!;
-const picker = document.querySelector<HTMLSelectElement>('#part')!;
+const controlsPanel = document.querySelector('.inspector-controls')!;
+function addPicker(label: string, choices: readonly (readonly [string, string])[], initial: string): HTMLSelectElement {
+  const field = document.createElement('label');
+  field.textContent = label;
+  const input = document.createElement('select');
+  for (const [value, text] of choices) input.add(new Option(text, value));
+  input.value = initial;
+  field.append(input);
+  controlsPanel.append(field);
+  return input;
+}
+const genderPicker = addPicker('Gender', [['female', 'Female'], ['male', 'Male']], 'female');
+const agePicker = addPicker('Age', [
+  ['child', 'Child'], ['teen', 'Teen'], ['adult', 'Adult'], ['elder', 'Elder'], ['aged', 'Aged'],
+], 'adult');
+const expressionPicker = addPicker('Expression', [
+  ['normal', 'Neutral'], ['happy', 'Happy'], ['smiling', 'Smiling'], ['sad', 'Sad'], ['blink', 'Blink'],
+], 'normal');
+const picker = addPicker('Body part', [], '');
+const bodyPreset = document.querySelector('#body-preset')!;
+const totalVoxels = document.querySelector('#total-voxels')!;
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 host.append(renderer.domElement);
 const scene = new THREE.Scene();
-const body = createBody({ age: 'adult', gender: 'female' });
-const anatomy = measureBody(body);
-const regions = new Map(anatomy.regions.map(region => [region.id, region]));
-document.querySelector('#total-voxels')!.textContent = formatVoxelCount(anatomy.total.voxelVolume);
-const joints = new Map<JointName, THREE.Vector3>();
-for (const joint of body.joints) {
-  joints.set(joint.name, new THREE.Vector3(...joint.at).add(joint.parent ? joints.get(joint.parent)! : new THREE.Vector3()));
+function selectedBody() {
+  return createBody({ age: agePicker.value as Age, gender: genderPicker.value as Gender });
 }
+let body = selectedBody();
+let anatomy = measureBody(body);
+let face = createFace(body.head.face, faceOptionsFor(body.spec.gender));
+let bodyMeshCount = 0;
+const joints = new Map<JointName, THREE.Vector3>();
 const targets: THREE.Mesh<THREE.BoxGeometry, THREE.MeshLambertMaterial>[] = [];
 function addBox(box: Box, joint: JointName, region: BodyRegionId, faceColor?: number) {
   const color = faceColor ?? colorOf(box);
@@ -39,47 +59,54 @@ function addBox(box: Box, joint: JointName, region: BodyRegionId, faceColor?: nu
   scene.add(mesh);
   mesh.updateMatrixWorld();
   targets.push(mesh);
-  return mesh;
 }
 
-for (const part of body.parts) {
-  for (const box of part.boxes) addBox(box, part.joint, box.region);
-}
-
-const face = createFace(body.head.face, faceOptionsFor(body.spec.gender));
-const bodyMeshCount = targets.length;
-function showFace(state?: FaceState): void {
-  for (const mesh of targets.splice(bodyMeshCount)) {
+function removeMeshes(from: number): void {
+  for (const mesh of targets.splice(from)) {
     mesh.removeFromParent();
     mesh.geometry.dispose();
     mesh.material.dispose();
   }
+}
+function showFace(): void {
+  removeMeshes(bodyMeshCount);
+  const value = expressionPicker.value as ExpressionName | 'blink';
+  const state: FaceState = value === 'blink' ? { ...expressions.normal, eyes: 'closed' } : expressions[value];
   for (const block of faceBoxes(face, state)) addBox(block, face.joint, 'head', colorOf(block));
 }
-const expressionPicker = document.createElement('select');
-expressionPicker.id = 'expression';
-const expressionField = document.createElement('div');
-expressionField.className = 'part-picker';
-const expressionLabel = document.createElement('label');
-expressionLabel.htmlFor = expressionPicker.id;
-expressionLabel.textContent = 'Expression';
-expressionField.append(expressionLabel, expressionPicker);
-picker.closest('.part-picker')?.after(expressionField);
-for (const [value, label] of [
-  ['normal', 'Neutral'], ['happy', 'Happy'], ['smiling', 'Smiling'], ['sad', 'Sad'], ['blink', 'Blink'],
-] as const) expressionPicker.add(new Option(label, value));
-expressionPicker.addEventListener('change', () => {
-  const value = expressionPicker.value as ExpressionName | 'blink';
-  showFace(value === 'blink' ? { ...expressions.normal, eyes: 'closed' } : expressions[value]);
-});
-showFace();
-for (const region of anatomy.regions) {
-  const prefix = region.parent ? '  ' : '';
-  picker.add(new Option(prefix + region.label, region.id));
+function rebuildBody(): void {
+  const selectedRegion = picker.value as BodyRegionId;
+  removeMeshes(0);
+  body = selectedBody();
+  face = createFace(body.head.face, faceOptionsFor(body.spec.gender));
+  anatomy = measureBody(body);
+  joints.clear();
+  for (const joint of body.joints) {
+    const position = new THREE.Vector3(...joint.at);
+    if (joint.parent) position.add(joints.get(joint.parent)!);
+    joints.set(joint.name, position);
+  }
+  for (const part of body.parts) {
+    for (const box of part.boxes) addBox(box, part.joint, box.region);
+  }
+  bodyMeshCount = targets.length;
+  showFace();
+  picker.replaceChildren(new Option('Select a body part', ''));
+  for (const region of anatomy.regions) picker.add(new Option(region.label, region.id));
+  bodyPreset.textContent = [
+    agePicker.selectedOptions[0].text,
+    genderPicker.selectedOptions[0].text,
+    body.height + ' voxels tall',
+  ].join(' · ');
+  totalVoxels.textContent = formatVoxelCount(anatomy.total.voxelVolume);
+  select(selectedRegion);
+  controls.target.y = body.height / 2;
+  controls.update();
+  resize();
 }
 const SELECTION_COLOR = 0x77bcb0;
 function select(id?: BodyRegionId): void {
-  const region = id === undefined ? undefined : regions.get(id);
+  const region = id === undefined ? undefined : anatomy.regions.find(region => region.id === id);
   for (const mesh of targets) {
     const selected = mesh.userData.highlight && region && isBodyRegion(mesh.userData.region as BodyRegionId, region.id);
     mesh.material.color.setHex(selected ? SELECTION_COLOR : mesh.userData.baseColor);
@@ -88,7 +115,6 @@ function select(id?: BodyRegionId): void {
   renderInspector(details, region);
 }
 picker.addEventListener('change', () => select(picker.value === '' ? undefined : picker.value as BodyRegionId));
-select();
 const camera = new THREE.OrthographicCamera(-24, 24, 24, -24, 0.1, 500);
 camera.position.set(42, 31, 100);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -127,6 +153,9 @@ function resize(): void {
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
+genderPicker.addEventListener('change', rebuildBody);
+agePicker.addEventListener('change', rebuildBody);
+expressionPicker.addEventListener('change', showFace);
+rebuildBody();
 new ResizeObserver(resize).observe(host);
-resize();
 renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
