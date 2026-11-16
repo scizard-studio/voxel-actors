@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
-  createBody, createFace, faceOptionsFor, colorOf, measureBody, isBodyRegion,
-  type BodyRegionId, type Box, type JointName,
+  createBody, createFace, expressions, faceBoxes, faceOptionsFor, colorOf, measureBody, isBodyRegion,
+  type BodyRegionId, type Box, type ExpressionName, type FaceState, type JointName,
 } from '../packages/characters/src';
 import { renderInspector, formatVoxelCount } from './inspector';
 import './style.css';
@@ -28,7 +28,7 @@ for (const joint of body.joints) {
   joints.set(joint.name, new THREE.Vector3(...joint.at).add(joint.parent ? joints.get(joint.parent)! : new THREE.Vector3()));
 }
 const targets: THREE.Mesh<THREE.BoxGeometry, THREE.MeshLambertMaterial>[] = [];
-function addBox(box: Box, joint: JointName, region: BodyRegionId, faceColor?: number): void {
+function addBox(box: Box, joint: JointName, region: BodyRegionId, faceColor?: number) {
   const color = faceColor ?? colorOf(box);
   const material = new THREE.MeshLambertMaterial({ color });
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...box.size), material);
@@ -39,6 +39,7 @@ function addBox(box: Box, joint: JointName, region: BodyRegionId, faceColor?: nu
   scene.add(mesh);
   mesh.updateMatrixWorld();
   targets.push(mesh);
+  return mesh;
 }
 
 for (const part of body.parts) {
@@ -46,14 +47,32 @@ for (const part of body.parts) {
 }
 
 const face = createFace(body.head.face, faceOptionsFor(body.spec.gender));
-for (const block of [
-  ...face.shapes.eyes.open,
-  ...face.shapes.brows.flat,
-  ...face.shapes.nose.small,
-  ...face.shapes.mouth.openSmile,
-]) {
-  addBox(block, face.joint, 'head', colorOf(block));
+const bodyMeshCount = targets.length;
+function showFace(state?: FaceState): void {
+  for (const mesh of targets.splice(bodyMeshCount)) {
+    mesh.removeFromParent();
+    mesh.geometry.dispose();
+    mesh.material.dispose();
+  }
+  for (const block of faceBoxes(face, state)) addBox(block, face.joint, 'head', colorOf(block));
 }
+const expressionPicker = document.createElement('select');
+expressionPicker.id = 'expression';
+const expressionField = document.createElement('div');
+expressionField.className = 'part-picker';
+const expressionLabel = document.createElement('label');
+expressionLabel.htmlFor = expressionPicker.id;
+expressionLabel.textContent = 'Expression';
+expressionField.append(expressionLabel, expressionPicker);
+picker.closest('.part-picker')?.after(expressionField);
+for (const [value, label] of [
+  ['normal', 'Neutral'], ['happy', 'Happy'], ['smiling', 'Smiling'], ['sad', 'Sad'], ['blink', 'Blink'],
+] as const) expressionPicker.add(new Option(label, value));
+expressionPicker.addEventListener('change', () => {
+  const value = expressionPicker.value as ExpressionName | 'blink';
+  showFace(value === 'blink' ? { ...expressions.normal, eyes: 'closed' } : expressions[value]);
+});
+showFace();
 for (const region of anatomy.regions) {
   const prefix = region.parent ? '  ' : '';
   picker.add(new Option(prefix + region.label, region.id));

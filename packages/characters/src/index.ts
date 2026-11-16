@@ -35,7 +35,7 @@ export type { Hoop } from './humanoid/clips/hulaHoop/hoop';
 export type { Clip, Swing } from './humanoid/clips/pose';
 export { ropeAt } from './humanoid/clips/ropeSkip/rope';
 export type { Rope } from './humanoid/clips/ropeSkip/rope';
-export { createFace, expressions, faceAt, faceOptionsFor } from './humanoid/face';
+export { createFace, expressions, faceAt, faceBoxes, faceOptionsFor } from './humanoid/face';
 export type { ExpressionName, Face, FaceOptions, FaceShapes, FaceState, FeatureName, FeatureShapes } from './humanoid/face';
 export { createHair, hairStyles } from './humanoid/hair/hair';
 export type { Hair, HairStyle, HairStyleName } from './humanoid/hair/hair';
