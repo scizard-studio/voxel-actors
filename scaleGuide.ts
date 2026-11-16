@@ -1,12 +1,13 @@
 import { BoxGeometry, Group, Mesh, MeshLambertMaterial } from 'three';
+import { CHARACTER_SCALE, metresPerVoxel } from './packages/characters/src';
 
 /**
  * The size standard the characters are made for, one voxel to one unit here:
  * a cell of ground is 3 m across and 64 voxels, so a voxel is about 4.7 cm.
  */
-export const VOXELS_PER_CELL = 64;
-export const METRES_PER_CELL = 3;
-export const METRES_PER_VOXEL = METRES_PER_CELL / VOXELS_PER_CELL;
+export const VOXELS_PER_CELL = CHARACTER_SCALE.voxelsPerCell;
+export const METRES_PER_CELL = CHARACTER_SCALE.metresPerCell;
+export const METRES_PER_VOXEL = metresPerVoxel(CHARACTER_SCALE);
 
 // A door is 2.2 m tall and a little over 1 m wide. One storey is 3 m.
 const DOOR_HEIGHT = Math.round(2.2 / METRES_PER_VOXEL);

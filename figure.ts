@@ -1,6 +1,6 @@
 import { BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group, Mesh, MeshLambertMaterial, type Object3D } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { Body, Box, Face, FaceState, FeatureName, JointName, Pose, Role, Socket, Worn } from './packages/characters/src';
+import { colorOf, type Appearance, type Body, type Box, type Face, type FaceState, type FeatureName, type JointName, type Pose, type Socket, type Worn } from './packages/characters/src';
 
 /** A character drawn with Three.js, one voxel to one unit. It stands on y = 0 and faces +z. */
 export interface Figure {
@@ -16,12 +16,12 @@ export interface Figure {
 }
 
 /** One mesh for a set of blocks, each block colored by its role. */
-function geometryOf(boxes: readonly Box[], colors: Record<Role, number>): BufferGeometry {
+function geometryOf(boxes: readonly Box[], appearance: Appearance): BufferGeometry {
   const color = new Color();
   const pieces = boxes.map((box) => {
     const [w, h, d] = box.size;
     const piece = new BoxGeometry(w, h, d).translate(box.at[0] + w / 2, box.at[1] + h / 2, box.at[2] + d / 2);
-    color.setHex(colors[box.role]);
+    color.setHex(colorOf(box, appearance));
     const count = piece.getAttribute('position').count;
     piece.setAttribute('color', new Float32BufferAttribute(Array.from({ length: count }, () => [color.r, color.g, color.b]).flat(), 3));
     return piece;
@@ -38,7 +38,7 @@ function geometryOf(boxes: readonly Box[], colors: Record<Role, number>): Buffer
  * it. Every shape of every face feature gets a mesh of its own, and only the
  * shapes of the moment show.
  */
-export function createFigure(body: Body, face: Face, worn: readonly Worn[], colors: Record<Role, number>): Figure {
+export function createFigure(body: Body, face: Face, worn: readonly Worn[], appearance: Appearance = {}): Figure {
   const root = new Group();
   const material = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const geometries: BufferGeometry[] = [];
@@ -51,7 +51,7 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], colo
   }
 
   const addMesh = (boxes: readonly Box[], joint: JointName): Mesh => {
-    const geometry = geometryOf(boxes, colors);
+    const geometry = geometryOf(boxes, appearance);
     geometries.push(geometry);
     const mesh = new Mesh(geometry, material);
     mesh.castShadow = true;
@@ -60,7 +60,7 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], colo
     return mesh;
   };
   for (const part of body.parts) addMesh(part.boxes, part.joint);
-  for (const piece of worn) addMesh(piece.boxes, piece.joint);
+  for (const piece of worn) if (piece.boxes.length > 0) addMesh(piece.boxes, piece.joint);
 
   const faceMeshes: { feature: FeatureName; shape: string; mesh: Mesh }[] = [];
   for (const [feature, byShape] of Object.entries(face.shapes) as [FeatureName, Record<string, readonly Box[]>][]) {

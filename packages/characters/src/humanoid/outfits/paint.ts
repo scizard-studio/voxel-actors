@@ -1,31 +1,30 @@
-import type { Part, Role } from '../model';
+import type { BodyPart, Role } from '../model';
+import type { BodyRegionId } from '../regions';
 
 /** The regions of a body that cloth can cover. Painting one colors the body's own blocks: no block is added. */
 export type Region = 'hips' | 'waist' | 'chest' | 'upperArms' | 'forearms' | 'thighs' | 'shins' | 'feet';
 
 /** Which role each painted region takes. A region left out stays bare skin. */
-export type Paint = Partial<Record<Region, Role>>;
+export type Paint = Partial<Record<Region | BodyRegionId, Role>>;
 
-// The region each block of a body part belongs to, in the order the body builds them. Left and
-// right parts are alike. Null is never painted: the neck and the hands.
-const REGIONS: Record<string, readonly (Region | null)[]> = {
-  pelvis: ['hips'],
-  torso: ['waist', 'chest', null],
-  upperArm: ['upperArms', 'upperArms'],
-  lowerArm: ['forearms', null],
-  upperLeg: ['thighs'],
-  lowerLeg: ['shins', 'feet'],
+// Bilateral aliases preserve existing outfits; explicit region keys take precedence.
+const GROUPS: Partial<Record<BodyRegionId, Region>> = {
+  upperArmLeft: 'upperArms', upperArmRight: 'upperArms',
+  forearmLeft: 'forearms', forearmRight: 'forearms',
+  thighLeft: 'thighs', thighRight: 'thighs',
+  shinLeft: 'shins', shinRight: 'shins',
+  footLeft: 'feet', footRight: 'feet',
 };
 
 /** The body's parts with their painted regions recolored. */
-export function painted(parts: readonly Part[], paint: Paint): Part[] {
+export function painted(parts: readonly BodyPart[], paint: Paint): BodyPart[] {
   return parts.map((part) => {
-    const regions = REGIONS[part.name.replace(/(Left|Right)$/, '')] ?? [];
     return {
       ...part,
-      boxes: part.boxes.map((box, index) => {
-        const region = regions[index];
-        const role = region == null ? undefined : paint[region];
+      boxes: part.boxes.map((box) => {
+        const region = box.region;
+        const group = GROUPS[region];
+        const role = paint[region] ?? (group === undefined ? undefined : paint[group]);
         return role === undefined ? box : { ...box, role };
       }),
     };

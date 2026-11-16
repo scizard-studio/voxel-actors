@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createBody, type JointName } from './packages/characters/src';
-import { hairColors, roleColors, skinTones } from './palette';
+import { createBody, colorOf, type JointName } from './packages/characters/src';
 import './anatomy.css';
 
 // Outfit studies are preserved in character-study/, inactive in this anatomy mock.
@@ -17,7 +16,6 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 host.append(renderer.domElement);
 const scene = new THREE.Scene();
 const body = createBody({ age: 'adult', gender: 'female' });
-const colors = roleColors(skinTones[0], hairColors[0]);
 const joints = new Map<JointName, THREE.Vector3>();
 for (const joint of body.joints) {
   joints.set(joint.name, new THREE.Vector3(...joint.at).add(joint.parent ? joints.get(joint.parent)! : new THREE.Vector3()));
@@ -40,11 +38,11 @@ for (const part of body.parts) {
     const name = regionName(part.name, index);
     let region = regions.find(item => item.name === name);
     if (!region) { region = { name, joint: part.joint, meshes: [], bounds: new THREE.Box3() }; regions.push(region); }
-    const material = new THREE.MeshLambertMaterial({ color: colors[box.role] });
+    const material = new THREE.MeshLambertMaterial({ color: colorOf(box) });
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(...box.size), material);
     mesh.position.copy(joints.get(part.joint)!).add(new THREE.Vector3(...box.at)).add(new THREE.Vector3(...box.size).multiplyScalar(0.5));
     mesh.userData.region = region;
-    mesh.userData.baseColor = colors[box.role];
+    mesh.userData.baseColor = colorOf(box);
     scene.add(mesh);
     mesh.updateMatrixWorld();
     region.bounds.union(new THREE.Box3().setFromObject(mesh));

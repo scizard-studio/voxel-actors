@@ -1,4 +1,5 @@
-﻿import { mirrored, type Box, type Part, type Role } from './model';
+﻿import { mirrored, type BodyBox, type BodyPart } from './model';
+import { oppositeRegion, type BodyRegionId } from './regions';
 import type { Joint, JointName } from './skeleton';
 
 export type Age = 'child' | 'teen' | 'adult' | 'elder' | 'aged';
@@ -8,6 +9,8 @@ export type Gender = 'female' | 'male';
 export interface BodySpec {
   readonly age: Age;
   readonly gender: Gender;
+  /** Optional dimensions merged over the selected preset. */
+  readonly proportions?: ProportionOverrides;
 }
 
 /**
@@ -63,7 +66,8 @@ export interface Socket {
 export interface Body {
   readonly spec: BodySpec;
   readonly joints: readonly Joint[];
-  readonly parts: readonly Part[];
+  readonly parts: readonly BodyPart[];
+  readonly proportions: Proportions;
   /** What faces, hair and hats are fitted to. */
   readonly head: HeadShape;
   /** Where things attach. Every body has every socket, so anything made to attach fits every body. */
@@ -76,7 +80,7 @@ export interface Body {
 type Size3 = readonly [width: number, height: number, depth: number];
 
 /** The sizes of one kind of body, in voxels. */
-interface Proportions {
+export interface Proportions {
   readonly head: Size3;
   /** Height of the neck. 0 sets the head straight on the chest. */
   readonly neck: number;
@@ -98,6 +102,12 @@ interface Proportions {
   /** How far the back bends forward at rest, in radians. */
   readonly stoop: number;
 }
+
+/** Supply only the dimensions that differ from the age/gender preset. */
+export type ProportionOverrides = Partial<Omit<Proportions, 'arm' | 'leg'>> & {
+  readonly arm?: Partial<Proportions['arm']>;
+  readonly leg?: Partial<Proportions['leg']>;
+};
 
 /*
  * Chibi proportions: a big head, a small body, short legs, and a short neck
@@ -170,6 +180,40 @@ const male = {
 
 const PROPORTIONS: Record<Gender, Record<Age, Proportions>> = { female, male };
 
+/** Resolves a fresh copy; invalid dimensions fail before any geometry is built. */
+export function resolveProportions(spec: BodySpec): Proportions {
+  const preset = PROPORTIONS[spec.gender]?.[spec.age];
+  if (!preset) throw new Error('Unknown body age or gender.');
+  const custom = spec.proportions ?? {};
+  const p: Proportions = {
+    ...preset, ...custom,
+    head: [...(custom.head ?? preset.head)],
+    chest: [...(custom.chest ?? preset.chest)],
+    waist: [...(custom.waist ?? preset.waist)],
+    pelvis: [...(custom.pelvis ?? preset.pelvis)],
+    arm: { ...preset.arm, ...custom.arm },
+    leg: { ...preset.leg, ...custom.leg },
+  };
+  function dimension(value: number, name: string, minimum = 1): void {
+    if (!Number.isSafeInteger(value) || value < minimum) throw new Error(`${name} must be an integer of at least ${minimum} voxels.`);
+  }
+  for (const name of ['head', 'chest', 'waist', 'pelvis'] as const) {
+    if (p[name].length !== 3) throw new Error(`${name} must have width, height and depth.`);
+    p[name].forEach((value, axis) => dimension(value, `${name}[${axis}]`));
+  }
+  dimension(p.head[0], 'head width', 3);
+  dimension(p.head[1], 'head height', 8);
+  dimension(p.head[2], 'head depth', 5);
+  dimension(p.neck, 'neck', 0);
+  if (p.neck > 0) dimension(p.chest[2], 'chest depth with neck', 3);
+  for (const [name, value] of Object.entries(p.arm)) dimension(value, `arm.${name}`);
+  dimension(p.arm.thick, 'arm.thick', 3);
+  dimension(p.arm.upper, 'arm.upper', 2);
+  for (const [name, value] of Object.entries(p.leg)) dimension(value, `leg.${name}`, name === 'gap' || name === 'toe' ? 0 : 1);
+  if (!Number.isFinite(p.stoop) || Math.abs(p.stoop) >= Math.PI / 2) throw new Error('stoop must be finite and between -pi/2 and pi/2 radians.');
+  return p;
+}
+
 // The head's edges are cut back this far, which softens its outline. The face sits inside them.
 const BEVEL = 1;
 // The top edges of an upper arm are cut back this far on the outside, front and back, rounding the
@@ -183,24 +227,25 @@ const HEAD_LIFT = 0.6;
 const EAR = { height: 4, belowTop: 3, inFromBack: 2, deep: 3, reach: 1 };
 
 /** A block centred left to right and front to back on the pivot, hanging down from it. */
-function hanging(width: number, height: number, depth: number, role: Role, top = 0): Box {
-  return { at: [-width / 2, top - height, -depth / 2], size: [width, height, depth], role };
+function hanging(width: number, height: number, depth: number, region: BodyRegionId, top = 0): BodyBox {
+  return { at: [-width / 2, top - height, -depth / 2], size: [width, height, depth], role: 'skin', region };
 }
 
 /** A block centred left to right and front to back on the pivot, standing up from it. */
-function standing(width: number, height: number, depth: number, role: Role, bottom = 0): Box {
-  return { at: [-width / 2, bottom, -depth / 2], size: [width, height, depth], role };
+function standing(width: number, height: number, depth: number, region: BodyRegionId, bottom = 0): BodyBox {
+  return { at: [-width / 2, bottom, -depth / 2], size: [width, height, depth], role: 'skin', region };
 }
 
 /** The left upper arm, hanging from the ball of the shoulder, its top rounded on every side but the inner one. */
-function upperArmLeft(thick: number, length: number): Box[] {
+function upperArmLeft(thick: number, length: number): BodyBox[] {
   const top = thick / 2;
   return [
-    hanging(thick, length - SHOULDER_BEVEL, thick, 'skin', top - SHOULDER_BEVEL),
+    hanging(thick, length - SHOULDER_BEVEL, thick, 'upperArmLeft', top - SHOULDER_BEVEL),
     {
       at: [-thick / 2, top - SHOULDER_BEVEL, -thick / 2 + SHOULDER_BEVEL],
       size: [thick - SHOULDER_BEVEL, SHOULDER_BEVEL, thick - 2 * SHOULDER_BEVEL],
       role: 'skin',
+      region: 'upperArmLeft',
     },
   ];
 }
@@ -220,32 +265,33 @@ function headShape([width, height, depth]: Size3): HeadShape {
 }
 
 /** A head with its twelve edges cut back, out of three crossing blocks, and an ear on each side. */
-function headBoxes({ width, height, depth, bevel, ears }: HeadShape): Box[] {
-  const inner = (w: number, h: number, d: number): Box => ({
+function headBoxes({ width, height, depth, bevel, ears }: HeadShape): BodyBox[] {
+  const inner = (w: number, h: number, d: number): BodyBox => ({
     at: [-w / 2, (height - h) / 2, -d / 2],
     size: [w, h, d],
     role: 'skin',
+    region: 'head',
   });
   // The left ear: solid behind, with a shaded hollow down its front edge.
   const { bottom, top, back, front, reach } = ears;
-  const ear: Box[] = [
-    { at: [width / 2, bottom, back], size: [reach, top - bottom, front - 1 - back], role: 'skin' },
-    { at: [width / 2, bottom, front - 1], size: [reach, 1, 1], role: 'skin' },
-    { at: [width / 2, top - 1, front - 1], size: [reach, 1, 1], role: 'skin' },
-    { at: [width / 2, bottom + 1, front - 1], size: [reach, top - bottom - 2, 1], role: 'skinShade' },
+  const ear: BodyBox[] = [
+    { at: [width / 2, bottom, back], size: [reach, top - bottom, front - 1 - back], role: 'skin', region: 'earLeft' },
+    { at: [width / 2, bottom, front - 1], size: [reach, 1, 1], role: 'skin', region: 'earLeft' },
+    { at: [width / 2, top - 1, front - 1], size: [reach, 1, 1], role: 'skin', region: 'earLeft' },
+    { at: [width / 2, bottom + 1, front - 1], size: [reach, top - bottom - 2, 1], role: 'skin', region: 'innerEarLeft' },
   ];
   return [
     inner(width, height - 2 * bevel, depth - 2 * bevel),
     inner(width - 2 * bevel, height, depth - 2 * bevel),
     inner(width - 2 * bevel, height - 2 * bevel, depth),
     ...ear,
-    ...ear.map(mirrored),
+    ...ear.map(mirrorBodyBox),
   ];
 }
 
 /** Builds a plain body, with no face, hair or clothes, for a person of this age and gender. */
 export function createBody(spec: BodySpec): Body {
-  const p = PROPORTIONS[spec.gender][spec.age];
+  const p = resolveProportions(spec);
   const { arm, leg } = p;
   const legLength = leg.upper + leg.shin + leg.foot;
   const torso = p.waist[1] + p.chest[1];
@@ -270,38 +316,38 @@ export function createBody(spec: BodySpec): Body {
     { name: 'kneeRight', parent: 'hipRight', at: [0, -leg.upper, 0] },
   ];
 
-  // Torso: waist, chest, then a short shaded neck under the chin.
-  const torsoBoxes: Box[] = [
-    standing(p.waist[0], p.waist[1], p.waist[2], 'skin'),
-    standing(p.chest[0], p.chest[1], p.chest[2], 'skin', p.waist[1]),
+  // Torso: waist, chest, then a short neck under the chin.
+  const torsoBoxes: BodyBox[] = [
+    standing(p.waist[0], p.waist[1], p.waist[2], 'waist'),
+    standing(p.chest[0], p.chest[1], p.chest[2], 'chest', p.waist[1]),
   ];
-  if (p.neck > 0) torsoBoxes.push(standing(Math.ceil(p.chest[0] / 2), p.neck, p.chest[2] - 2, 'skinShade', torso));
+  if (p.neck > 0) torsoBoxes.push(standing(Math.ceil(p.chest[0] / 2), p.neck, p.chest[2] - 2, 'neck', torso));
 
-  const lowerArm: Box[] = [
-    hanging(arm.thick, arm.forearm, arm.thick, 'skin'),
-    hanging(arm.thick, arm.hand, arm.thick, 'skin', -arm.forearm),
+  const lowerArm: BodyBox[] = [
+    hanging(arm.thick, arm.forearm, arm.thick, 'forearmLeft'),
+    hanging(arm.thick, arm.hand, arm.thick, 'handLeft', -arm.forearm),
   ];
   // The foot is the bottom of the lower leg, reaching forward past the shin.
-  const lowerLeg: Box[] = [
-    hanging(leg.wide, leg.shin, leg.deep, 'skin'),
-    { at: [-leg.wide / 2, -leg.shin - leg.foot, -leg.deep / 2], size: [leg.wide, leg.foot, leg.deep + leg.toe], role: 'skin' },
+  const lowerLeg: BodyBox[] = [
+    hanging(leg.wide, leg.shin, leg.deep, 'shinLeft'),
+    { at: [-leg.wide / 2, -leg.shin - leg.foot, -leg.deep / 2], size: [leg.wide, leg.foot, leg.deep + leg.toe], role: 'skin', region: 'footLeft' },
   ];
-  const limb = (name: string, upperJoint: JointName, lowerJoint: JointName, upper: Box[], lower: Box[]): Part[] => [
+  const limb = (name: string, upperJoint: JointName, lowerJoint: JointName, upper: BodyBox[], lower: BodyBox[]): BodyPart[] => [
     { name: `upper${name}`, joint: upperJoint, boxes: upper },
     { name: `lower${name}`, joint: lowerJoint, boxes: lower },
   ];
   const upperArm = upperArmLeft(arm.thick, arm.upper);
-  const upperLeg = [hanging(leg.wide, leg.upper, leg.deep, 'skin')];
+  const upperLeg = [hanging(leg.wide, leg.upper, leg.deep, 'thighLeft')];
   const head = headShape(p.head);
 
-  const parts: Part[] = [
-    { name: 'pelvis', joint: 'pelvis', boxes: [standing(p.pelvis[0], p.pelvis[1], p.pelvis[2], 'skinShade')] },
+  const parts: BodyPart[] = [
+    { name: 'pelvis', joint: 'pelvis', boxes: [standing(p.pelvis[0], p.pelvis[1], p.pelvis[2], 'hips')] },
     { name: 'torso', joint: 'waist', boxes: torsoBoxes },
     { name: 'head', joint: 'head', boxes: headBoxes(head) },
     ...limb('ArmLeft', 'shoulderLeft', 'elbowLeft', upperArm, lowerArm),
-    ...limb('ArmRight', 'shoulderRight', 'elbowRight', upperArm.map(mirrored), lowerArm),
+    ...limb('ArmRight', 'shoulderRight', 'elbowRight', upperArm.map(mirrorBodyBox), lowerArm.map(mirrorBodyBox)),
     ...limb('LegLeft', 'hipLeft', 'kneeLeft', upperLeg, lowerLeg),
-    ...limb('LegRight', 'hipRight', 'kneeRight', upperLeg, lowerLeg),
+    ...limb('LegRight', 'hipRight', 'kneeRight', upperLeg.map(mirrorBodyBox), lowerLeg.map(mirrorBodyBox)),
   ];
 
   const posture: Posture =
@@ -309,6 +355,7 @@ export function createBody(spec: BodySpec): Body {
 
   return {
     spec,
+    proportions: p,
     joints,
     parts,
     head,
@@ -321,4 +368,8 @@ export function createBody(spec: BodySpec): Body {
     posture,
     height: legLength + p.pelvis[1] + torso + p.neck + head.height,
   };
+}
+
+function mirrorBodyBox(box: BodyBox): BodyBox {
+  return { ...mirrored(box), region: oppositeRegion(box.region) };
 }

@@ -1,6 +1,6 @@
 import type { Body } from '../body';
 import type { HatStyleName } from '../hats/hats';
-import type { Role } from '../model';
+import type { Role, Worn } from '../model';
 import { baker } from './baker';
 import { builder } from './builder';
 import { butcher } from './butcher';
@@ -27,12 +27,13 @@ import { teacher } from './teacher';
 import { tshirtAndTrousers } from './tshirtAndTrousers';
 
 /**
- * A whole outfit, top to toe, under one name. Cloth is painted on the body's
- * own blocks, so an outfit adds no block and fits every body. A new outfit is
- * a new file in this folder, listed in `everydayOutfits` or `workOutfits`.
+ * An outfit can recolor named regions and add joint-attached geometry.
+ * Geometry recipes receive the resolved body, so fitting uses actual dimensions.
  */
 export interface Outfit {
   readonly paint: Paint;
+  /** Additional geometry, such as a skirt or cape. Does not alter the base body. */
+  readonly build?: (body: Body) => readonly Worn[];
   /** A hat that belongs to the outfit, such as a builder's hard hat. */
   readonly hat?: HatStyleName;
   /** The outfit's own color for each role it uses. */
@@ -83,6 +84,23 @@ export type OutfitName = keyof typeof outfits;
 /** A body dressed in an outfit: painted, and carrying the colors of what it wears, ready to draw. */
 export interface Dressed extends Body {
   readonly colors: Partial<Record<Role, number>>;
+  readonly worn: readonly Worn[];
+}
+
+/** Compose a custom outfit without modifying the registry or the source body. */
+export function applyOutfit(body: Body, outfit: Outfit, color?: number): Dressed {
+  const colors = color === undefined ? { ...outfit.colors } : { ...outfit.colors, top: color };
+  const worn = outfit.build?.(body) ?? [];
+  const joints = new Set(body.joints.map(joint => joint.name));
+  for (const piece of worn) {
+    if (!joints.has(piece.joint)) throw new Error(`Outfit references unknown joint ${piece.joint}.`);
+    for (const box of piece.boxes) {
+      if (box.at.length !== 3 || box.size.length !== 3 || !box.at.every(Number.isFinite) || !box.size.every(value => Number.isFinite(value) && value > 0)) {
+        throw new Error('Outfit geometry requires finite coordinates and positive dimensions.');
+      }
+    }
+  }
+  return { ...body, parts: painted(body.parts, outfit.paint), colors, worn };
 }
 
 /**
@@ -93,6 +111,5 @@ export function dress(body: Body, name: EverydayOutfitName, color?: number): Dre
 export function dress(body: Body, name: OutfitName): Dressed;
 export function dress(body: Body, name: OutfitName, color?: number): Dressed {
   const outfit: Outfit = outfits[name];
-  const colors = color === undefined ? outfit.colors : { ...outfit.colors, top: color };
-  return { ...body, parts: painted(body.parts, outfit.paint), colors };
+  return applyOutfit(body, outfit, color);
 }
