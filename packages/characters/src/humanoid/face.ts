@@ -1,5 +1,10 @@
 import type { FaceArea, Gender } from './body';
 import type { Box, Role } from './model';
+import { createFlatBrows } from './face/brows';
+import { createRoundedEyes } from './face/eyes';
+import { LAYER } from './face/layout';
+import { createOpenSmile } from './face/mouth';
+import { createSmallNose } from './face/nose';
 
 /**
  * The features of a face, and the shapes each can take. An expression picks
@@ -48,74 +53,6 @@ export const expressions = {
 
 export type ExpressionName = keyof typeof expressions;
 
-// A face lies on the head like a decal: features are this thin, in voxels.
-const LAYER = 0.15;
-
-const EYE_MASK = ['.EEEE.', 'EEEEEE', 'EEEEEE', 'EEEEEE', '.RRRR.'];
-
-function roundedEyeLayout(area: FaceArea) {
-  const width = EYE_MASK[0].length;
-  const unit = Math.min(0.375, area.width / (2 * width + 1));
-  return {
-    unit,
-    center: area.left + area.width / 2,
-    top: area.bottom + Math.min(5.75, area.height - 2.5),
-    halfSpacing: Math.min(3.5, area.width / 2 - width * unit / 2),
-  };
-}
-
-function createFlatBrows(area: FaceArea): readonly Box[] {
-  const { unit, center, top, halfSpacing } = roundedEyeLayout(area);
-  return [-1, 1].map((side): Box => ({
-    at: [center + side * halfSpacing - 2 * unit, top + 2 * unit, area.front],
-    size: [4 * unit, unit, LAYER],
-    role: 'brow',
-  }));
-}
-
-function createSmallNose(area: FaceArea): readonly Box[] {
-  const { unit, center, top } = roundedEyeLayout(area);
-  const step = unit * 2 / 3;
-  const base = top - EYE_MASK.length * unit - step;
-  return [
-    { at: [center, base, area.front], size: [2 * step, step, LAYER], role: 'nose' },
-    { at: [center + step, base + step, area.front], size: [step, 2 * step, LAYER], role: 'nose' },
-  ];
-}
-
-function createOpenSmile(area: FaceArea): readonly Box[] {
-  const { unit, center, top } = roundedEyeLayout(area);
-  const step = unit * 2 / 3;
-  const mouthTop = top - 13 * step;
-  const widths = [4, 6, 4, 2];
-  return widths.map((columns, row): Box => ({
-    at: [center - columns * step / 2, mouthTop - (row + 1) * step, area.front],
-    size: [columns * step, step, LAYER],
-    role: row === 0 ? 'teeth' : 'mouth',
-  }));
-}
-
-/** Rounded eyes fitted to the face plane, using the study's proportions. */
-function createRoundedEyes(area: FaceArea, lashes: boolean): readonly Box[] {
-  const { unit, center, top, halfSpacing } = roundedEyeLayout(area);
-  const depth = 0.25;
-  const boxes: Box[] = [];
-  for (const side of [-1, 1]) {
-    const left = center + side * halfSpacing - EYE_MASK[0].length * unit / 2;
-    for (const [row, line] of EYE_MASK.entries()) {
-      for (const [column, pixel] of [...line].entries()) {
-        const outerCorner = row === 0 && column === (side < 0 ? 0 : line.length - 1);
-        if (pixel === '.' && !(lashes && outerCorner)) continue;
-        boxes.push({
-          at: [left + column * unit, top - (row + 1) * unit, area.front + 0.01 - depth],
-          size: [unit, unit, depth],
-          role: pixel === 'R' ? 'eyeIris' : 'eye',
-        });
-      }
-    }
-  }
-  return boxes;
-}
 // Feature sizes, in voxels: eyes are square, brows a short bar, the mouth two rows tall.
 const EYE = 3;
 const MOUTH = 3;
