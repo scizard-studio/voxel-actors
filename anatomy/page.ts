@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createBody, colorOf, measureBody, isBodyRegion, type BodyRegionId, type JointName } from '../packages/characters/src';
+import {
+  createBody, createFace, faceOptionsFor, colorOf, measureBody, isBodyRegion,
+  type BodyRegionId, type Box, type JointName,
+} from '../packages/characters/src';
 import { renderInspector, formatVoxelCount } from './inspector';
 import './style.css';
 
@@ -25,17 +28,26 @@ for (const joint of body.joints) {
   joints.set(joint.name, new THREE.Vector3(...joint.at).add(joint.parent ? joints.get(joint.parent)! : new THREE.Vector3()));
 }
 const targets: THREE.Mesh<THREE.BoxGeometry, THREE.MeshLambertMaterial>[] = [];
+function addBox(box: Box, joint: JointName, region: BodyRegionId, faceColor?: number): void {
+  const color = faceColor ?? colorOf(box);
+  const material = new THREE.MeshLambertMaterial({ color });
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...box.size), material);
+  mesh.position.copy(joints.get(joint)!).add(new THREE.Vector3(...box.at)).add(new THREE.Vector3(...box.size).multiplyScalar(0.5));
+  mesh.userData.region = region;
+  mesh.userData.baseColor = color;
+  mesh.userData.highlight = faceColor === undefined;
+  scene.add(mesh);
+  mesh.updateMatrixWorld();
+  targets.push(mesh);
+}
+
 for (const part of body.parts) {
-  part.boxes.forEach((box) => {
-    const material = new THREE.MeshLambertMaterial({ color: colorOf(box) });
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(...box.size), material);
-    mesh.position.copy(joints.get(part.joint)!).add(new THREE.Vector3(...box.at)).add(new THREE.Vector3(...box.size).multiplyScalar(0.5));
-    mesh.userData.region = box.region;
-    mesh.userData.baseColor = colorOf(box);
-    scene.add(mesh);
-    mesh.updateMatrixWorld();
-    targets.push(mesh);
-  });
+  for (const box of part.boxes) addBox(box, part.joint, box.region);
+}
+
+const face = createFace(body.head.face, faceOptionsFor(body.spec.gender));
+for (const eyeBlock of face.shapes.eyes.open) {
+  addBox(eyeBlock, face.joint, 'head', colorOf(eyeBlock));
 }
 for (const region of anatomy.regions) {
   const prefix = region.parent ? '  ' : '';
@@ -45,7 +57,7 @@ const SELECTION_COLOR = 0x77bcb0;
 function select(id?: BodyRegionId): void {
   const region = id === undefined ? undefined : regions.get(id);
   for (const mesh of targets) {
-    const selected = region && isBodyRegion(mesh.userData.region as BodyRegionId, region.id);
+    const selected = mesh.userData.highlight && region && isBodyRegion(mesh.userData.region as BodyRegionId, region.id);
     mesh.material.color.setHex(selected ? SELECTION_COLOR : mesh.userData.baseColor);
   }
   picker.value = region?.id ?? '';

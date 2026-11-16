@@ -50,6 +50,32 @@ export type ExpressionName = keyof typeof expressions;
 
 // A face lies on the head like a decal: features are this thin, in voxels.
 const LAYER = 0.15;
+
+/** Rounded eyes fitted to the face plane, using the study's proportions. */
+function createRoundedEyes(area: FaceArea, lashes: boolean): readonly Box[] {
+  const mask = ['.EEEE.', 'EEEEEE', 'EEEEEE', 'EEEEEE', '.RRRR.'];
+  const unit = Math.min(0.375, area.width / (2 * mask[0].length + 1));
+  const depth = 0.25;
+  const center = area.left + area.width / 2;
+  const top = area.bottom + Math.min(5.75, area.height - 2.5);
+  const halfSpacing = Math.min(3.5, area.width / 2 - mask[0].length * unit / 2);
+  const boxes: Box[] = [];
+  for (const side of [-1, 1]) {
+    const left = center + side * halfSpacing - mask[0].length * unit / 2;
+    for (const [row, line] of mask.entries()) {
+      for (const [column, pixel] of [...line].entries()) {
+        const outerCorner = row === 0 && column === (side < 0 ? 0 : line.length - 1);
+        if (pixel === '.' && !(lashes && outerCorner)) continue;
+        boxes.push({
+          at: [left + column * unit, top - (row + 1) * unit, area.front + 0.01 - depth],
+          size: [unit, unit, depth],
+          role: pixel === 'R' ? 'eyeIris' : 'eye',
+        });
+      }
+    }
+  }
+  return boxes;
+}
 // Feature sizes, in voxels: eyes are square, brows a short bar, the mouth two rows tall.
 const EYE = 3;
 const BROW = 2;
@@ -110,13 +136,7 @@ function layout(area: FaceArea, options: FaceOptions): FaceShapes {
       ]),
     },
     eyes: {
-      // Dark above, warm brown below, and a bright spot in the top left corner, so both look lit from one side.
-      open: bothEyes((eye) => [
-        cell(eye.x, eyeBottom + 1, EYE, EYE - 1, 'eye'),
-        cell(eye.x, eyeBottom, EYE, 1, 'eyeIris'),
-        cell(eye.x, eyeBottom + EYE - 1, 1, 1, 'eyeShine', 1),
-        ...lash(eye.lash, eyeBottom + EYE - 1),
-      ]),
+      open: createRoundedEyes(area, options.lashes),
       closed: bothEyes((eye) => [cell(eye.x, eyeBottom + 1, EYE, 1, 'eye'), ...lash(eye.lash, eyeBottom)]),
       // Happy arcs, like ^ ^.
       smile: bothEyes((eye) => [

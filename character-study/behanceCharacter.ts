@@ -1,3 +1,4 @@
+import { buildBehanceFace } from './behanceFace';
 import { Group, Mesh, MeshStandardMaterial } from 'three';
 import { sculptGeometry, type SculptBlock } from './voxelGeometry';
 
@@ -162,16 +163,7 @@ export function createBehanceCharacter(look: Look): Group {
     box(side * 7.5, 27.25, 0.125, 0.25, 1.5, 1, skinShadow);
     box(side * 7.5, 27.25, 0.375, 0.25, 0.375, 0.5, 0xf0b598);
   }
-  const faceColors = { E: 0x361913, R: 0x6a3125, B: 0x986343, C: 0xed947e, T: 0xfff4de, M: 0xbc372c };
-  for (const side of [-1, 1]) {
-    pixels(['.EEEE.', 'EEEEEE', 'EEEEEE', 'EEEEEE', '.RRRR.'], side * 3.5 - 1.125, 28.75, 4, 0.375, faceColors);
-    pixels(['BBBB.', '.BBBB'], side * 3.5 - 0.875, 30.125, 4, 0.375, faceColors);
-    pixels(['.CCCC.', 'CCCCCC', 'CCCCCC', '.CCCC.'], side * 4.125 - 1.125, 26.375, 4, 0.375, faceColors);
-  }
-  pixels(['.TTTT.', 'MMMMMM', '.MMMM.', '..MM..'], -0.75, 25.5, 4, 0.25, faceColors);
-  box(0.375, 26.625, 3.875, 0.25, 0.75, 0.25, 0xdca181);
-  box(0.125, 26.625, 3.875, 0.5, 0.25, 0.25, 0xdca181);
-  box(0.125, 26.875, 3.875, 0.25, 0.5, 0.25, 0xffd5b2);
+  buildBehanceFace((x, y, z, w, h, d, color) => box(x, y + 22, z + 4, w, h, d, color));
 
   if (look === 'dressed') {
     // The back curtain and sides wrap the head, with broader steps only at the ends.
