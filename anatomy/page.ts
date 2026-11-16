@@ -46,9 +46,9 @@ for (const part of body.parts) {
 }
 
 const face = createFace(body.head.face, faceOptionsFor(body.spec.gender));
-for (const eyeBlock of face.shapes.eyes.open) {
-  addBox(eyeBlock, face.joint, 'head', colorOf(eyeBlock));
-}
+// for (const block of [...face.shapes.eyes.open, ...face.shapes.brows.flat]) {
+//   addBox(block, face.joint, 'head', colorOf(block));
+// }
 for (const region of anatomy.regions) {
   const prefix = region.parent ? '  ' : '';
   picker.add(new Option(prefix + region.label, region.id));

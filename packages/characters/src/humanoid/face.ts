@@ -51,18 +51,36 @@ export type ExpressionName = keyof typeof expressions;
 // A face lies on the head like a decal: features are this thin, in voxels.
 const LAYER = 0.15;
 
+const EYE_MASK = ['.EEEE.', 'EEEEEE', 'EEEEEE', 'EEEEEE', '.RRRR.'];
+
+function roundedEyeLayout(area: FaceArea) {
+  const width = EYE_MASK[0].length;
+  const unit = Math.min(0.375, area.width / (2 * width + 1));
+  return {
+    unit,
+    center: area.left + area.width / 2,
+    top: area.bottom + Math.min(5.75, area.height - 2.5),
+    halfSpacing: Math.min(3.5, area.width / 2 - width * unit / 2),
+  };
+}
+
+function createFlatBrows(area: FaceArea): readonly Box[] {
+  const { unit, center, top, halfSpacing } = roundedEyeLayout(area);
+  return [-1, 1].map((side): Box => ({
+    at: [center + side * halfSpacing - 2 * unit, top + 2 * unit, area.front],
+    size: [4 * unit, unit, LAYER],
+    role: 'brow',
+  }));
+}
+
 /** Rounded eyes fitted to the face plane, using the study's proportions. */
 function createRoundedEyes(area: FaceArea, lashes: boolean): readonly Box[] {
-  const mask = ['.EEEE.', 'EEEEEE', 'EEEEEE', 'EEEEEE', '.RRRR.'];
-  const unit = Math.min(0.375, area.width / (2 * mask[0].length + 1));
+  const { unit, center, top, halfSpacing } = roundedEyeLayout(area);
   const depth = 0.25;
-  const center = area.left + area.width / 2;
-  const top = area.bottom + Math.min(5.75, area.height - 2.5);
-  const halfSpacing = Math.min(3.5, area.width / 2 - mask[0].length * unit / 2);
   const boxes: Box[] = [];
   for (const side of [-1, 1]) {
-    const left = center + side * halfSpacing - mask[0].length * unit / 2;
-    for (const [row, line] of mask.entries()) {
+    const left = center + side * halfSpacing - EYE_MASK[0].length * unit / 2;
+    for (const [row, line] of EYE_MASK.entries()) {
       for (const [column, pixel] of [...line].entries()) {
         const outerCorner = row === 0 && column === (side < 0 ? 0 : line.length - 1);
         if (pixel === '.' && !(lashes && outerCorner)) continue;
@@ -78,7 +96,6 @@ function createRoundedEyes(area: FaceArea, lashes: boolean): readonly Box[] {
 }
 // Feature sizes, in voxels: eyes are square, brows a short bar, the mouth two rows tall.
 const EYE = 3;
-const BROW = 2;
 const MOUTH = 3;
 const BLUSH = 2;
 // The eyes sit this far apart, as in the reference face, or closer on a narrow face.
@@ -128,7 +145,7 @@ function layout(area: FaceArea, options: FaceOptions): FaceShapes {
 
   return {
     brows: {
-      flat: bothEyes((eye) => [cell(Math.min(eye.browInner, eye.browOuter), browY, BROW, 1, 'brow')]),
+      flat: createFlatBrows(area),
       // Inner ends up into the forehead, outer ends where they were: a worried look.
       worried: bothEyes((eye) => [
         cell(eye.browInner, browY + 1, 1, 1, 'brow'),
