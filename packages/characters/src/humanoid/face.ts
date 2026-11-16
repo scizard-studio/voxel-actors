@@ -73,6 +73,28 @@ function createFlatBrows(area: FaceArea): readonly Box[] {
   }));
 }
 
+function createSmallNose(area: FaceArea): readonly Box[] {
+  const { unit, center, top } = roundedEyeLayout(area);
+  const step = unit * 2 / 3;
+  const base = top - EYE_MASK.length * unit - step;
+  return [
+    { at: [center, base, area.front], size: [2 * step, step, LAYER], role: 'nose' },
+    { at: [center + step, base + step, area.front], size: [step, 2 * step, LAYER], role: 'nose' },
+  ];
+}
+
+function createOpenSmile(area: FaceArea): readonly Box[] {
+  const { unit, center, top } = roundedEyeLayout(area);
+  const step = unit * 2 / 3;
+  const mouthTop = top - 13 * step;
+  const widths = [4, 6, 4, 2];
+  return widths.map((columns, row): Box => ({
+    at: [center - columns * step / 2, mouthTop - (row + 1) * step, area.front],
+    size: [columns * step, step, LAYER],
+    role: row === 0 ? 'teeth' : 'mouth',
+  }));
+}
+
 /** Rounded eyes fitted to the face plane, using the study's proportions. */
 function createRoundedEyes(area: FaceArea, lashes: boolean): readonly Box[] {
   const { unit, center, top, halfSpacing } = roundedEyeLayout(area);
@@ -163,7 +185,7 @@ function layout(area: FaceArea, options: FaceOptions): FaceShapes {
       ]),
     },
     nose: {
-      small: [cell(width / 2 - 0.5, noseY, 1, 1, 'nose')],
+      small: createSmallNose(area),
     },
     mouth: {
       line: [cell(mouthLeft, mouthTop, MOUTH, 1, 'mouth')],
@@ -173,13 +195,7 @@ function layout(area: FaceArea, options: FaceOptions): FaceShapes {
         cell(mouthLeft + 1, mouthBottom, 1, 1, 'mouth'),
         cell(mouthLeft + 2, mouthTop, 1, 1, 'mouth'),
       ],
-      // Open and laughing: teeth along the top, darker in the corners below.
-      openSmile: [
-        cell(mouthLeft, mouthTop, MOUTH, 1, 'teeth'),
-        cell(mouthLeft, mouthBottom, 1, 1, 'mouthDark'),
-        cell(mouthLeft + 1, mouthBottom, 1, 1, 'mouth'),
-        cell(mouthLeft + 2, mouthBottom, 1, 1, 'mouthDark'),
-      ],
+      openSmile: createOpenSmile(area),
       // Open mid-word, as when talking: a dark mouth two rows tall.
       open: [cell(mouthLeft, mouthBottom, MOUTH, 2, 'mouthDark')],
       // Corners down.
