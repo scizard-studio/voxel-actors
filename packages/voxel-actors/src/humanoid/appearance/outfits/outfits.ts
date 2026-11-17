@@ -27,6 +27,7 @@ import { tankAndShorts } from './tankAndShorts.js';
 import { tavernKeeper } from './tavernKeeper.js';
 import { teacher } from './teacher.js';
 import { tshirtAndTrousers } from './tshirtAndTrousers.js';
+import { westernRomper } from './westernRomper.js';
 
 /**
  * An outfit can recolor named regions and add joint-attached geometry.
@@ -48,6 +49,7 @@ export const everydayOutfits = {
   longSleevesAndTrousers,
   tankAndShorts,
   romper,
+  westernRomper,
   jumpsuit,
   frock,
 } satisfies Record<string, Outfit>;
