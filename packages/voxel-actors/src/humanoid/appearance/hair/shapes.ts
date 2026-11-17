@@ -59,10 +59,10 @@ export function backOfHead(head: HeadShape, bottom: number): Box {
   return block([-side, bottom, back - 1], [side, top, back]);
 }
 
-/** Sides that cover the ears, standing a voxel clear of them. */
-export function coveredSides(head: HeadShape): Box[] {
+/** Sides that cover the ears, with extra thickness beyond the ear tips. */
+export function coveredSides(head: HeadShape, earClearance = 1): Box[] {
   const { side, top, front, back } = edges(head);
-  return pair([side, SIDE_LIFT, back - 1], [side + head.ears.reach + 1, top, front]);
+  return pair([side, SIDE_LIFT, back - 1], [side + head.ears.reach + earClearance, top, front]);
 }
 
 /** Sides close to the head, above and behind the ears, which show. */

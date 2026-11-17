@@ -4,6 +4,7 @@ import { backOfHead, cap, coveredSides, fall, fringeEnds, partedFringe, sideLock
 
 // The hair falls this share of the head's height below the head, down the back.
 const FALL = 0.4;
+const EAR_CLEARANCE = 0.5;
 
 /**
  * Long, parted in the middle: a fringe curving down at its ends, a lock down
@@ -13,7 +14,7 @@ export function longParted(head: HeadShape): Box[] {
   return [
     ...cap(head),
     backOfHead(head, head.bevel),
-    ...coveredSides(head),
+    ...coveredSides(head, EAR_CLEARANCE),
     ...partedFringe(head),
     ...fringeEnds(head),
     ...sideLocks(head),
