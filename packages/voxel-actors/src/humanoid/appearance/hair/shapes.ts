@@ -24,6 +24,7 @@ export interface HeadEdges {
 const SIDE_LIFT = 3;
 // A fall of hair down the back keeps this far in from the sides of the head, so swinging arms pass it.
 const FALL_INSET = 4;
+export const FRONT_PROJECTION = 0.5;
 
 /** A block of hair between two opposite corners. */
 export function block(from: Corner, to: Corner): Box {
@@ -75,30 +76,30 @@ export function tuckedSides(head: HeadShape): Box[] {
   ];
 }
 
-/** A lock down each side of the face, a voxel proud of it. */
+/** A lock down each side of the face, projecting in front of it. */
 export function sideLocks(head: HeadShape): Box[] {
   const { side, top, front, faceSide } = edges(head);
-  return pair([faceSide, head.bevel, front - head.bevel], [side, top + 1, front + 1]);
+  return pair([faceSide, head.bevel, front - head.bevel], [side, top + 1, front + FRONT_PROJECTION]);
 }
 
-/** A straight fringe along the top edge of the face, a voxel proud of it. */
+/** A straight fringe along the top edge of the face, projecting in front of it. */
 export function straightFringe(head: HeadShape): Box {
   const { side, top, front } = edges(head);
-  return block([-side, top - head.bevel, front - head.bevel], [side, top + 1, front + 1]);
+  return block([-side, top - head.bevel, front - head.bevel], [side, top + 1, front + FRONT_PROJECTION]);
 }
 
-/** A fringe along the top edge of the face, a voxel proud of it, in two halves either side of a middle parting. */
+/** A fringe that projects in front of the forehead, split by a middle parting. */
 export function partedFringe(head: HeadShape): Box[] {
   const { top, front, faceSide } = edges(head);
-  return pair([0.5, top - head.bevel, front - head.bevel], [faceSide, top + 1, front + 1]);
+  return pair([0.5, top - head.bevel, front - head.bevel], [faceSide, top + 1, front + FRONT_PROJECTION]);
 }
 
 /** The ends of a fringe, curving down over the outer corners of the forehead, clear of the brows. */
 export function fringeEnds(head: HeadShape): Box[] {
   const { front, faceSide, faceTop } = edges(head);
   return [
-    ...pair([faceSide - 2, faceTop - 1, front], [faceSide, faceTop, front + 1]),
-    ...pair([faceSide - 1, faceTop - 2, front], [faceSide, faceTop - 1, front + 1]),
+    ...pair([faceSide - 2, faceTop - 1, front], [faceSide, faceTop, front + FRONT_PROJECTION]),
+    ...pair([faceSide - 1, faceTop - 2, front], [faceSide, faceTop - 1, front + FRONT_PROJECTION]),
   ];
 }
 
