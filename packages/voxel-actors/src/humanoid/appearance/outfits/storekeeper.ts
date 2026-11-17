@@ -10,7 +10,6 @@ export const storekeeper: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0xf2efe6, bottom: 0x2e3440, shoes: 0x3a3330 },
+  colors: { top: 0xf2efe6, bottom: 0x2e3440 },
 };

@@ -10,8 +10,7 @@ export const policeman: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
   hat: 'peakedCap',
-  colors: { top: 0x2b3f6b, bottom: 0x22304f, shoes: 0x1f1c1c, hat: 0x2b3f6b, hatBand: 0x1f1c1c },
+  colors: { top: 0x2b3f6b, bottom: 0x22304f, hat: 0x2b3f6b, hatBand: 0x1f1c1c },
 };

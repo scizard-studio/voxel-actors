@@ -6,9 +6,9 @@ const ARM_SIDE_TRIM = 1;
 const SLEEVE_GAP = 0.03;
 
 export const frock: Outfit = {
-  paint: { waist: 'top', hips: 'top', feet: 'shoes', handLeft: 'top', handRight: 'top' },
+  paint: { waist: 'top', hips: 'top', handLeft: 'top', handRight: 'top' },
   hat: 'roseCrown',
-  colors: { top: 0xc91c24, clothShade: 0x991721, shoes: 0xad1620 },
+  colors: { top: 0xc91c24, clothShade: 0x991721 },
   build({ proportions: { arm, chest, waist, pelvis, leg } }) {
     const bodiceTop = waist[1] + chest[1] * 0.76;
     const halfChest = chest[0] / 2;

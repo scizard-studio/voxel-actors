@@ -10,8 +10,7 @@ export const baker: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
   hat: 'chefHat',
-  colors: { top: 0xfbf8f2, bottom: 0x8c8c8c, shoes: 0x3a3330, hat: 0xfbf8f2 },
+  colors: { top: 0xfbf8f2, bottom: 0x8c8c8c, hat: 0xfbf8f2 },
 };

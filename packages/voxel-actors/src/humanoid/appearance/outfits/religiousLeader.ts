@@ -10,7 +10,6 @@ export const religiousLeader: Outfit = {
     hips: 'top',
     thighs: 'top',
     shins: 'top',
-    feet: 'shoes',
   },
-  colors: { top: 0x6b2e3a, shoes: 0x2a2424 },
+  colors: { top: 0x6b2e3a },
 };

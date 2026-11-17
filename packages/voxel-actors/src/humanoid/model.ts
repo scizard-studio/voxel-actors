@@ -30,6 +30,8 @@ export type Role =
   | 'top'
   | 'bottom'
   | 'shoes'
+  | 'bootPetal'
+  | 'bootLeaf'
   | 'clothShade'
   | 'cape'
   | 'trim';

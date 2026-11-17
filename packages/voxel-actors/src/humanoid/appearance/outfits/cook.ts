@@ -10,8 +10,7 @@ export const cook: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
   hat: 'softCap',
-  colors: { top: 0xf6f6f2, bottom: 0x2a2a2a, shoes: 0x2a2424, hat: 0x2a2a2a },
+  colors: { top: 0xf6f6f2, bottom: 0x2a2a2a, hat: 0x2a2a2a },
 };

@@ -8,8 +8,7 @@ export const butcher: Outfit = {
     waist: 'bottom',
     hips: 'bottom',
     thighs: 'bottom',
-    shins: 'shoes',
-    feet: 'shoes',
+    shins: 'bottom',
   },
-  colors: { top: 0xf2efe6, bottom: 0x8e3b3b, shoes: 0x2a2424 },
+  colors: { top: 0xf2efe6, bottom: 0x8e3b3b },
 };

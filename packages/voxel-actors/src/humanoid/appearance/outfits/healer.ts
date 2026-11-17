@@ -10,7 +10,6 @@ export const healer: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0x8cc7b8, bottom: 0x6fae9f, shoes: 0xb0b8b4 },
+  colors: { top: 0x8cc7b8, bottom: 0x6fae9f },
 };

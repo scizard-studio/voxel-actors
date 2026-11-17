@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import {
   createBody, colorOf, defaultPalette, bodyRegions, isBodyRegion, oppositeRegion, measureBody,
-  measureSolids, resolveProportions, applyOutfit, createHat, dress, outfits,
+  measureSolids, resolveProportions, applyFootwear, applyOutfit, createHat, dress, outfits,
   CHARACTER_SCALE, metresPerVoxel, voxelScaleFactor,
   type Age, type Gender, type BodyRegionId, type BodySpec, type BodyBox, type JointName,
 } from '../packages/voxel-actors/src';
@@ -109,6 +109,31 @@ it('preserves all registered outfits across all presets', () => {
     expect(dressed.worn.length > 0).toBe('build' in outfits[name]);
     expect(body.parts.flatMap(part => part.boxes).every(box => box.role === 'skin')).toBe(true);
   }
+});
+
+it('swaps footwear without changing the outfit geometry or colors', () => {
+  const body = createBody(spec);
+  const gown = dress(body, 'goldGown');
+  const boots = applyFootwear(gown, 'embroideredBoots');
+  const barefoot = applyFootwear(gown, null);
+  expect(boots.worn.slice(0, gown.worn.length)).toEqual(gown.worn);
+  expect(boots.worn.slice(gown.worn.length).map(piece => piece.joint)).toEqual(['kneeLeft', 'kneeRight']);
+  expect(boots.colors.cape).toBe(gown.colors.cape);
+  expect(boots.colors.trim).toBe(gown.colors.trim);
+  expect(barefoot.worn).toEqual(gown.worn);
+  const footRole = (dressed: typeof gown) => dressed.parts.flatMap(part => part.boxes)
+    .find(box => box.region === 'footLeft')?.role;
+  expect(footRole(gown)).toBe('shoes');
+  expect(footRole(boots)).toBe('shoes');
+  expect(footRole(barefoot)).toBe('skin');
+  const western = dress(body, 'westernRomper');
+  const westernWithBasicShoes = dress(body, 'westernRomper', undefined, 'basicShoes');
+  const westernBarefoot = dress(body, 'westernRomper', undefined, null);
+  expect(western.worn.slice(-2).map(piece => piece.joint)).toEqual(['kneeLeft', 'kneeRight']);
+  expect(westernWithBasicShoes.worn).toEqual(western.worn.slice(0, -2));
+  expect(westernBarefoot.worn).toEqual(westernWithBasicShoes.worn);
+  expect(footRole(westernWithBasicShoes)).toBe('shoes');
+  expect(footRole(westernBarefoot)).toBe('skin');
 });
 
 it('builds rose crown petals with positive dimensions on every side', () => {

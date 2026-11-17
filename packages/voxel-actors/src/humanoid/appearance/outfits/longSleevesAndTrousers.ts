@@ -10,7 +10,6 @@ export const longSleevesAndTrousers: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0x8fb3d9, bottom: 0x4a4038, shoes: 0x3a3330 },
+  colors: { top: 0x8fb3d9, bottom: 0x4a4038 },
 };

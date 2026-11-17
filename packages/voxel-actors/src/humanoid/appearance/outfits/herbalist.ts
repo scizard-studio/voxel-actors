@@ -9,7 +9,6 @@ export const herbalist: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0x9cc48a, bottom: 0x6f8f5a, shoes: 0x5b3a27 },
+  colors: { top: 0x9cc48a, bottom: 0x6f8f5a },
 };

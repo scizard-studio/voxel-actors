@@ -10,8 +10,7 @@ export const miller: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
   hat: 'softCap',
-  colors: { top: 0xece6d8, bottom: 0xd8cfbd, shoes: 0x7a6a5a, hat: 0xf4f0e6 },
+  colors: { top: 0xece6d8, bottom: 0xd8cfbd, hat: 0xf4f0e6 },
 };

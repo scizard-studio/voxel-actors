@@ -1,6 +1,7 @@
 import { Color, DirectionalLight, HemisphereLight, PCFShadowMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
+  applyFootwear,
   clips,
   carryArms,
   createBody,
@@ -58,6 +59,7 @@ function startStudio(): void {
     outfit: 'romper',
     clothColor: null,
     hat: null,
+    footwear: null,
     expression: 'normal',
     clip: 'idle',
     prop: 'none',
@@ -131,7 +133,7 @@ function startStudio(): void {
     const propKey = state.prop;
     const appearanceKey = JSON.stringify([
       state.age, state.gender, state.tone, state.hair, state.hairColor,
-      state.outfit, state.clothColor, state.hat, state.sockets,
+      state.outfit, state.clothColor, state.hat, state.footwear, state.sockets,
       state.equipment.handLeft, state.equipment.handRight,
     ]);
     if (builtAppearance === appearanceKey && attachedProp === propKey) return;
@@ -145,11 +147,12 @@ function startStudio(): void {
     prop?.dispose();
     for (const item of equipped) item.dispose();
     const bare = createBody({ age: state.age, gender: state.gender });
+    const outfit = state.outfit === null ? undefined : outfits[state.outfit];
     const dressed = dressAsPicked(bare, state);
     body = dressed ?? bare;
     const face = createFace(body.head.face, faceOptionsFor(state.gender));
     // With no hat picked, an outfit's own hat is worn.
-    const hatStyle = state.hat ?? (state.outfit === null ? null : outfits[state.outfit].hat) ?? null;
+    const hatStyle = state.hat ?? outfit?.hat ?? null;
     const hat = hatStyle === null ? null : createHat(hatStyle, body.head);
     const hair = state.hair === null ? null : createHair(state.hair, body.head);
     // Hair under a hat is cut off at the hat.
@@ -237,10 +240,11 @@ function startStudio(): void {
  * a work outfit keeps its own.
  */
 function dressAsPicked(body: Body, state: StudioState): Dressed | null {
-  const { outfit, clothColor } = state;
-  if (outfit === null) return null;
+  const { outfit, clothColor, footwear } = state;
+  const pair = footwear === 'barefoot' ? null : footwear ?? undefined;
+  if (outfit === null) return pair == null ? null : applyFootwear(body, pair);
   const color = clothColor === null ? undefined : clothColors[clothColor].color;
-  return isEveryday(outfit) ? dress(body, outfit, color) : dress(body, outfit);
+  return isEveryday(outfit) ? dress(body, outfit, color, pair) : dress(body, outfit, undefined, pair);
 }
 
 function isEveryday(name: OutfitName): name is EverydayOutfitName {

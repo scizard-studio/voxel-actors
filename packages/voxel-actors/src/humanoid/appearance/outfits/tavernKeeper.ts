@@ -9,7 +9,6 @@ export const tavernKeeper: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0x7a4a2a, bottom: 0x33302c, shoes: 0x2a2424 },
+  colors: { top: 0x7a4a2a, bottom: 0x33302c },
 };

@@ -2,8 +2,8 @@ import type { Box, Role, Worn } from '../../model.js';
 import type { Outfit } from './outfits.js';
 
 export const goldGown: Outfit = {
-  paint: { feet: 'shoes' },
-  colors: { top: 0xe6a01b, clothShade: 0xc78315, cape: 0x205c36, trim: 0xffdf99, shoes: 0x845329 },
+  paint: {},
+  colors: { top: 0xe6a01b, clothShade: 0xc78315, cape: 0x205c36, trim: 0xffdf99 },
   build({ proportions: { chest, waist, pelvis, leg, arm } }): readonly Worn[] {
     const skirt: Box[] = [];
     const upper: Box[] = [];

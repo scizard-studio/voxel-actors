@@ -10,7 +10,6 @@ export const teacher: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0x3f6aa8, bottom: 0x3a3a44, shoes: 0x2a2424 },
+  colors: { top: 0x3f6aa8, bottom: 0x3a3a44 },
 };

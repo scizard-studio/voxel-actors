@@ -2,6 +2,7 @@ import {
   clips,
   everydayOutfits,
   hairStyles,
+  footwearStyles,
   hatStyles,
   outfits,
   type Age,
@@ -10,6 +11,7 @@ import {
   type Gender,
   type HairStyleName,
   type HatStyleName,
+  type FootwearStyleName,
   type OutfitName,
 } from '../../packages/voxel-actors/src';
 import { ages, dropdown, expressions, genders, panelHeader, panelSection, type Choice } from '../panel';
@@ -32,6 +34,7 @@ export interface StudioState {
   clothColor: number | null;
   /** The hat, or none: then the outfit's own hat is worn, if it has one. */
   hat: HatStyleName | null;
+  footwear: FootwearStyleName | 'barefoot' | null;
   expression: ExpressionName;
   clip: ClipName;
   prop: StudioProp;
@@ -95,6 +98,9 @@ export function createPanel(
     [[null, 'Default'], ...clothColors.map((color, index): Choice<number> => [index, color.name])],
     state.clothColor, set('clothColor'));
   dropdown<HatStyleName | null>(outfit, 'Hat', [[null, 'Outfit default'], ...choices(Object.keys(hatStyles) as HatStyleName[])], state.hat, set('hat'));
+  const footwearChoices = choices(Object.keys(footwearStyles) as FootwearStyleName[], true);
+  dropdown<StudioState['footwear']>(outfit, 'Footwear',
+    [[null, 'Outfit Default'], ['barefoot', 'Barefoot'], ...footwearChoices], state.footwear, set('footwear'));
 
   const propChoices = (Object.keys(studioProps) as StudioProp[]).map((name): Choice<StudioProp> => [name, studioProps[name].label]);
   const propClips = new Set(propChoices.map(([name]) => propMotion(name)));

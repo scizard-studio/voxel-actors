@@ -1,4 +1,5 @@
 import type { Body } from '../../body.js';
+import { applyFootwear, type FootwearStyleName } from '../footwear/footwear.js';
 import type { HatStyleName } from '../hats/hats.js';
 import type { Role, Worn } from '../../model.js';
 import { baker } from './baker.js';
@@ -39,6 +40,8 @@ export interface Outfit {
   readonly build?: (body: Body) => readonly Worn[];
   /** A hat that belongs to the outfit, such as a builder's hard hat. */
   readonly hat?: HatStyleName;
+  /** A separate pair of footwear worn by default with this outfit. */
+  readonly footwear?: FootwearStyleName;
   /** The outfit's own color for each role it uses. */
   readonly colors: Partial<Record<Role, number>>;
 }
@@ -121,9 +124,10 @@ function shadeCloth(color: number): number {
  * Dresses a body. An everyday outfit takes a color for its main cloth, such
  * as a green jumpsuit or a green t-shirt. A work outfit keeps its own colors.
  */
-export function dress(body: Body, name: EverydayOutfitName, color?: number): Dressed;
-export function dress(body: Body, name: OutfitName): Dressed;
-export function dress(body: Body, name: OutfitName, color?: number): Dressed {
+export function dress(body: Body, name: EverydayOutfitName, color?: number, footwear?: FootwearStyleName | null): Dressed;
+export function dress(body: Body, name: OutfitName, color?: undefined, footwear?: FootwearStyleName | null): Dressed;
+export function dress(body: Body, name: OutfitName, color?: number, footwear?: FootwearStyleName | null): Dressed {
   const outfit: Outfit = outfits[name];
-  return applyOutfit(body, outfit, color);
+  const pair = footwear === undefined ? outfit.footwear ?? 'basicShoes' : footwear;
+  return applyFootwear(applyOutfit(body, outfit, color), pair);
 }

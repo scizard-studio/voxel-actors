@@ -21,6 +21,8 @@ export const defaultPalette: Readonly<Record<Role, number>> = Object.freeze({
   top: 0xe8dcc0,
   bottom: 0xe8dcc0,
   shoes: 0x6b4a36,
+  bootPetal: 0xef7591,
+  bootLeaf: 0x5ca96f,
   clothShade: 0xb8ac9c,
   cape: 0x526e5b,
   trim: 0xe6c778,

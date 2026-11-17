@@ -9,7 +9,6 @@ export const shepherd: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0xd9c7a0, bottom: 0x8a6a48, shoes: 0x5b3a27 },
+  colors: { top: 0xd9c7a0, bottom: 0x8a6a48 },
 };

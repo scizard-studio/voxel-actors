@@ -9,8 +9,7 @@ export const forester: Outfit = {
     forearms: 'top',
     hips: 'bottom',
     thighs: 'bottom',
-    shins: 'shoes',
-    feet: 'shoes',
+    shins: 'bottom',
   },
-  colors: { top: 0xb03a2e, bottom: 0x6b4a2e, shoes: 0x3b2a1f },
+  colors: { top: 0xb03a2e, bottom: 0x6b4a2e },
 };

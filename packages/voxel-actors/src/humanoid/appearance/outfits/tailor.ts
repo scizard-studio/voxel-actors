@@ -10,7 +10,6 @@ export const tailor: Outfit = {
     hips: 'bottom',
     thighs: 'bottom',
     shins: 'bottom',
-    feet: 'shoes',
   },
-  colors: { top: 0x6a4c8c, bottom: 0x2e2a3a, shoes: 0x3a3330 },
+  colors: { top: 0x6a4c8c, bottom: 0x2e2a3a },
 };

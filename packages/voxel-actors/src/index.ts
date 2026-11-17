@@ -44,6 +44,8 @@ export { createHair, hairStyles } from './humanoid/appearance/hair/hair.js';
 export type { Hair, HairStyle, HairStyleName } from './humanoid/appearance/hair/hair.js';
 export { createHat, hairUnder, hatStyles } from './humanoid/appearance/hats/hats.js';
 export type { Hat, HatStyle, HatStyleName } from './humanoid/appearance/hats/hats.js';
+export { applyFootwear, footwearStyles } from './humanoid/appearance/footwear/footwear.js';
+export type { FootwearStyle, FootwearStyleName } from './humanoid/appearance/footwear/footwear.js';
 export type { Box, BodyBox, BodyPart, Part, Role, Worn } from './humanoid/model.js';
 export { dress, applyOutfit, everydayOutfits, outfits, workOutfits } from './humanoid/appearance/outfits/outfits.js';
 export type { Dressed, EverydayOutfitName, Outfit, OutfitName, WorkOutfitName } from './humanoid/appearance/outfits/outfits.js';
