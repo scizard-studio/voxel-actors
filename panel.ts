@@ -72,11 +72,11 @@ function segmented<T>(parent: HTMLElement, title: string, choices: readonly Choi
   const row = section(parent, title);
   const buttons = choices.map((choice) => {
     const button = document.createElement('button');
-    button.className = 'studio__choice';
+    button.className = 'control';
     button.textContent = choice.name;
-    button.classList.toggle('studio__choice--on', choice.value === start);
+    button.setAttribute('aria-pressed', String(choice.value === start));
     button.addEventListener('click', () => {
-      for (const other of buttons) other.classList.toggle('studio__choice--on', other === button);
+      for (const other of buttons) other.setAttribute('aria-pressed', String(other === button));
       onPick(choice.value);
     });
     row.append(button);
@@ -95,7 +95,7 @@ export function createPanel(
   onView: (view: 'front' | 'threeQuarter') => void,
 ): Panel {
   const panel = document.createElement('aside');
-  panel.className = 'studio__panel';
+  panel.className = 'workspace-panel studio__panel';
   container.append(panel);
 
   const title = document.createElement('h1');
@@ -103,10 +103,7 @@ export function createPanel(
   title.textContent = 'Character Studio';
   const readout = document.createElement('p');
   readout.className = 'studio__readout';
-  const anatomy = document.createElement('a');
-  anatomy.href = '/anatomy';
-  anatomy.textContent = 'Open Anatomy';
-  panel.append(title, readout, anatomy);
+  panel.append(title, readout);
 
   const set =
     <K extends keyof StudioState>(key: K) =>
@@ -230,7 +227,7 @@ export function createPanel(
     ['threeQuarter', 'Three-quarter'],
   ] as const) {
     const button = document.createElement('button');
-    button.className = 'studio__choice';
+    button.className = 'control';
     button.textContent = name;
     button.addEventListener('click', () => onView(view));
     viewRow.append(button);

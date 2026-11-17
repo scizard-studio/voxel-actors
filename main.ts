@@ -1,4 +1,19 @@
+import './style.css';
+
 const path = location.pathname.replace(/\/+$/, '') || '/';
+
+const header = document.createElement('header');
+header.className = 'app-header';
+header.innerHTML = `
+  <div class="brand"><span class="brand-icon" aria-hidden="true">◇</span> Character Studio</div>
+  <nav class="app-nav" aria-label="Character tools">
+    <a class="control" href="/">Studio</a>
+    <a class="control" href="/anatomy">Anatomy</a>
+  </nav>`;
+for (const link of header.querySelectorAll('a')) {
+  if (link.pathname === path) link.setAttribute('aria-current', 'page');
+}
+document.body.append(header);
 
 if (path === '/anatomy') {
   void import('./anatomy/page');
@@ -6,6 +21,5 @@ if (path === '/anatomy') {
   void import('./studio/page');
 } else {
   document.title = 'Character Studio';
-  document.body.style.cssText = 'margin:0;padding:48px;font:16px Arial,sans-serif;color:#263b36;background:#f7f8f5';
-  document.body.innerHTML = '<h1>Page not found</h1><a href="/">Open Character Studio</a>';
+  document.body.insertAdjacentHTML('beforeend', '<main class="not-found"><h1>Page not found</h1><a href="/">Open Character Studio</a></main>');
 }

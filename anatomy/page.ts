@@ -5,13 +5,11 @@ import {
   type Age, type Gender, type BodyRegionId, type Box, type ExpressionName, type FaceState, type JointName,
 } from '../packages/characters/src';
 import { renderInspector, formatVoxelCount } from './inspector';
-import './style.css';
 
 document.title = 'Character Anatomy';
-document.body.innerHTML = `
-  <header><div class="brand"><span class="brand-icon">◇</span> Character Anatomy</div><span class="badge">ANATOMY</span></header>
-  <main><section class="viewport" aria-label="Interactive character body"><div class="stage-heading"><span class="eyebrow">THE FOUNDATION</span><h1>A closer look.</h1><p>Select a part to explore its anatomy.</p></div><div class="canvas-host"></div><div class="view-hint">Drag to rotate <span>·</span> Scroll to zoom</div></section>
-  <aside aria-label="Body part information"><div class="inspector-content"><div class="panel-top"><span class="eyebrow">INSPECTOR</span><span class="status-dot"></span></div><div class="inspector-controls"></div><div id="details" aria-live="polite"></div></div><footer class="panel-note">Original Studio body<br><span id="body-preset"></span><div id="total-voxels"></div></footer></aside></main>`;
+document.body.insertAdjacentHTML('beforeend', `
+  <main class="workspace"><section class="workspace-stage" aria-label="Interactive character body"><div class="stage-heading"><h1>Character Anatomy</h1><p>Select a part to explore its anatomy.</p></div><div class="canvas-host"></div><div class="view-hint">Drag to rotate <span>·</span> Scroll to zoom</div></section>
+  <aside class="workspace-panel" aria-label="Body part information"><div class="inspector-content"><div class="panel-top"><span class="eyebrow">INSPECTOR</span><span class="status-dot"></span></div><div class="inspector-controls"></div><div id="details" aria-live="polite"></div></div><footer class="panel-note">Original Studio body<br><span id="body-preset"></span><div id="total-voxels"></div></footer></aside></main>`);
 const host = document.querySelector<HTMLDivElement>('.canvas-host')!;
 const details = document.querySelector<HTMLDivElement>('#details')!;
 const controlsPanel = document.querySelector('.inspector-controls')!;

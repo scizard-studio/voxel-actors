@@ -26,7 +26,6 @@ import { clothColors, hairColors, roleColors, skinTones } from '../palette';
 import { createPanel, type StudioState } from '../panel';
 import { METRES_PER_VOXEL, createScaleGuide } from '../scaleGuide';
 import { addSocketMarkers, type SocketMarkers } from '../socketMarkers';
-import '../studio.css';
 
 const MS = 1000;
 // Where the camera looks: about the chest of an adult.
@@ -64,11 +63,12 @@ function startStudio(): void {
   // Kept across rebuilds, so a new body carries on with what the old one was doing.
   const motion = createMotion(state.clip);
 
-  const layout = document.createElement('div');
-  layout.className = 'studio';
+  const layout = document.createElement('main');
+  layout.className = 'workspace';
   document.body.append(layout);
-  const stage = document.createElement('main');
-  stage.className = 'studio__stage';
+  const stage = document.createElement('section');
+  stage.className = 'workspace-stage studio__stage';
+  stage.setAttribute('aria-label', 'Character preview');
 
   const renderer = new WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -153,8 +153,8 @@ function startStudio(): void {
   let reducedDetail = false;
   const detailCenter = new Vector3();
   const detailCameraSpace = new Vector3();
-  const panel = createPanel(layout, state, rebuild, view);
   layout.append(stage);
+  const panel = createPanel(layout, state, rebuild, view);
   rebuild();
   view('threeQuarter');
 
