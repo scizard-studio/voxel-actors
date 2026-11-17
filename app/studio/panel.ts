@@ -88,7 +88,9 @@ export function createPanel(
   const hairColor = dropdown(appearance, 'Hair Color', hairColors.map((color, index) => [index, color.name]), state.hairColor, set('hairColor'));
 
   const outfit = panelSection(content, 'Outfit');
-  dropdown<OutfitName | null>(outfit, 'Outfit', [[null, 'None'], ...choices(Object.keys(outfits) as OutfitName[])], state.outfit, set('outfit'));
+  const outfitChoices = choices(Object.keys(outfits) as OutfitName[]).map(([name, label]): Choice<OutfitName> =>
+    [name, name === 'squareNeckDress' ? 'Square-neck dress' : label]);
+  dropdown<OutfitName | null>(outfit, 'Outfit', [[null, 'None'], ...outfitChoices], state.outfit, set('outfit'));
   const clothColor = dropdown<number | null>(outfit, 'Cloth color',
     [[null, 'Default'], ...clothColors.map((color, index): Choice<number> => [index, color.name])],
     state.clothColor, set('clothColor'));

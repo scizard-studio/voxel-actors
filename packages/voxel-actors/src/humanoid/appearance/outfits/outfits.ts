@@ -17,10 +17,10 @@ import { miller } from './miller.js';
 import { painted, type Paint } from './paint.js';
 import { policeman } from './policeman.js';
 import { porter } from './porter.js';
-import { frock } from './frock.js';
 import { religiousLeader } from './religiousLeader.js';
 import { romper } from './romper.js';
 import { shepherd } from './shepherd.js';
+import { squareNeckDress } from './squareNeckDress.js';
 import { storekeeper } from './storekeeper.js';
 import { tailor } from './tailor.js';
 import { tankAndShorts } from './tankAndShorts.js';
@@ -49,7 +49,7 @@ export const everydayOutfits = {
   tankAndShorts,
   romper,
   jumpsuit,
-  frock,
+  squareNeckDress,
 } satisfies Record<string, Outfit>;
 
 /**
