@@ -17,6 +17,7 @@ import { miller } from './miller.js';
 import { painted, type Paint } from './paint.js';
 import { policeman } from './policeman.js';
 import { porter } from './porter.js';
+import { redDress } from './redDress.js';
 import { religiousLeader } from './religiousLeader.js';
 import { romper } from './romper.js';
 import { shepherd } from './shepherd.js';
@@ -76,7 +77,7 @@ export const workOutfits = {
 } satisfies Record<string, Outfit>;
 
 /** Every outfit, by name, in the order they are offered. */
-export const outfits = { ...everydayOutfits, goldGown, ...workOutfits };
+export const outfits = { ...everydayOutfits, goldGown, redDress, ...workOutfits };
 
 export type EverydayOutfitName = keyof typeof everydayOutfits;
 export type WorkOutfitName = keyof typeof workOutfits;

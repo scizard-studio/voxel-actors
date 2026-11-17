@@ -5,6 +5,7 @@ import { chefHat } from './chefHat.js';
 import { cowboy } from './cowboy.js';
 import { hardHat } from './hardHat.js';
 import { peakedCap } from './peakedCap.js';
+import { roseCrown } from './roseCrown.js';
 import { softCap } from './softCap.js';
 import { strawHat } from './strawHat.js';
 
@@ -24,18 +25,20 @@ export interface Hat {
 }
 
 /** Every hat, by name, in the order they are offered. */
-export const hatStyles = { cowboy, peakedCap, hardHat, strawHat, chefHat, softCap } satisfies Record<string, HatStyle>;
+export const hatStyles = { cowboy, peakedCap, hardHat, strawHat, chefHat, softCap, roseCrown } satisfies Record<string, HatStyle>;
 
 export type HatStyleName = keyof typeof hatStyles;
 
 /** A hat of one style, fitted to one head. */
 export function createHat(style: HatStyleName, head: HeadShape): Hat {
   const boxes = hatStyles[style](head);
-  return { joint: 'head', boxes, hairLine: Math.min(...boxes.map((box) => box.at[1])) };
+  const hairLine = style === 'roseCrown' ? Infinity : Math.min(...boxes.map((box) => box.at[1]));
+  return { joint: 'head', boxes, hairLine };
 }
 
 /** Hair as it is under a hat: cut off at the hat's hair line, so no style needs a version for hats. */
 export function hairUnder(hair: Hair, hat: Hat): Hair {
+  if (hat.hairLine === Infinity) return hair;
   const boxes = hair.boxes.flatMap((box): Box[] => {
     const height = Math.min(box.size[1], hat.hairLine - box.at[1]);
     return height > 0 ? [{ ...box, size: [box.size[0], height, box.size[2]] }] : [];

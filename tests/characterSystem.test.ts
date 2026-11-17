@@ -101,8 +101,10 @@ it('preserves all registered outfits across all presets', () => {
     const body = createBody({ age, gender });
     const dressed = dress(body, name);
     for (const [group, role] of Object.entries(outfits[name].paint)) {
-      const ids = expectedRegions[group as keyof typeof expectedRegions];
-      expect(dressed.parts.flatMap(part => part.boxes).filter(box => ids.includes(box.region)).every(box => box.role === role)).toBe(true);
+      const ids = expectedRegions[group as keyof typeof expectedRegions] ?? [group];
+      const paintedBoxes = dressed.parts.flatMap(part => part.boxes).filter(box => ids.includes(box.region));
+      expect(paintedBoxes.length).toBeGreaterThan(0);
+      expect(paintedBoxes.every(box => box.role === role)).toBe(true);
     }
     expect(dressed.worn.length > 0).toBe('build' in outfits[name]);
     expect(body.parts.flatMap(part => part.boxes).every(box => box.role === 'skin')).toBe(true);
