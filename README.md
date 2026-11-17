@@ -1,19 +1,19 @@
-# Character Anatomy
+# Voxel Actors
 
-An interactive anatomy mock using the original Studio adult female body.
-Click a body part or choose it in the inspector to view its bounding dimensions,
-world-space center, and connected joint. Drag to rotate, scroll to zoom, and
-press Escape to clear the selection. Left and right follow the character.
+Voxel Actors is a work-in-progress TypeScript library for voxel characters. It currently supports humanoid bodies, facial expressions, hairstyles, outfits, equipment, and animation clips. The library provides the character data and poses. The preview app draws them with Three.js.
 
-## Development
+## Run locally
 
-Run `npm install`, then `npm run dev`. Open http://localhost:5175/.
-Vite uses port 5175 strictly. If a dev server is already running, use that server.
+Run `npm install` to install dependencies, then `npm run dev` to start Vite on port 5175.
 
-- `npm run build` checks TypeScript and creates a production build.
-- `npm test` runs the geometry and import-isolation checks.
+- [Studio](http://localhost:5175/) lets you customize and equip a character, preview animations, and compare rendering detail levels.
+- [Anatomy](http://localhost:5175/anatomy) lets you compare body presets and inspect part dimensions, position, joints, and voxel counts.
 
-The `/character-study/` URL opens the same anatomy mock.
-Previous character and gold gown/cape generators in `character-study/` are
-preserved for reference, but are not imported by the active application.
-The anatomy mock has no editing or animation controls yet.
+## Project layout
+
+- `packages/voxel-actors/` contains the shared library. Its public API starts at `src/index.ts`.
+- `app/` contains Studio, Anatomy, and the Three.js renderer. Earlier character studies, including the gown and cape, live in `app/studio/studies/`.
+- `tests/` contains the automated checks for the library and app.
+
+Run `npm run build` to type-check and build both the library and preview app.
+Run `npm test` to run the automated tests.
