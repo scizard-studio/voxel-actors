@@ -1,5 +1,6 @@
 import {
   clips,
+  everydayOutfits,
   hairStyles,
   hatStyles,
   outfits,
@@ -173,7 +174,7 @@ export function createPanel(
     state.outfit,
     set('outfit'),
   );
-  segmented<number | null>(
+  const clothColorButtons = segmented<number | null>(
     panel,
     'Cloth color',
     [{ value: null, name: 'Own' }, ...clothColors.map((color, index) => ({ value: index, name: color.name }))],
@@ -236,6 +237,8 @@ export function createPanel(
   actionStatus.className = 'studio__readout';
   actions.parentElement!.append(actionStatus);
   function updateActions(): void {
+    const canRecolor = state.outfit !== null && state.outfit in everydayOutfits;
+    for (const button of clothColorButtons) button.disabled = !canRecolor;
     const holdingCrate = state.prop === 'crate';
     const activity = propMotion(state.prop);
     const handsReserved = holdingCrate || activity !== undefined;
