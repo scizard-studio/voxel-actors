@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["*.ts", "anatomy", "studio", "packages/characters/src", "props", "tests", "character-study"]
+  "include": ["vite.config.ts", "app", "packages/voxel-actors/src", "tests"]
 }

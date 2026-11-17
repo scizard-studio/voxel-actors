@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 
 // Application sources, excluding build configuration, the bundled library and tests.
-const sources = import.meta.glob<string>(['../**/*.ts', '!../vite.config.ts', '!../packages/**', '!../tests/**'], { query: '?raw', import: 'default', eager: true });
+const sources = import.meta.glob<string>(['../app/**/*.ts', '../packages/voxel-actors/src/**/*.ts'], { query: '?raw', import: 'default', eager: true });
 const IMPORT = /(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 /** Resolves a relative import within the studio directory. */
@@ -19,10 +19,13 @@ function target(file: string, spec: string): string | null {
 
 /** The studio may use its own files, the character library, and Three.js. Nothing of the game or its engine. */
 function allowed(file: string, spec: string): boolean {
-  if (spec === 'three' || spec.startsWith('three/addons/')) return true;
+  const library = file.startsWith('../packages/');
+  if (spec === 'three' || spec.startsWith('three/addons/')) return !library;
   if (!spec.startsWith('.')) return false;
   const path = target(file, spec);
-  return path !== null && (!path.startsWith('packages/') || path === 'packages/characters/src');
+  if (path === null) return false;
+  const insideLibrary = path.startsWith('packages/voxel-actors/src/');
+  return library ? insideLibrary : path.startsWith('app/') || path === 'packages/voxel-actors/src';
 }
 
 it('uses only its own files, the character library and Three.js', () => {
@@ -33,6 +36,7 @@ it('uses only its own files, the character library and Three.js', () => {
       if (!allowed(file, spec)) outside.push(`${file} imports ${spec}`);
     }
   }
-  expect(Object.keys(sources).some((file) => file.startsWith('../props/'))).toBe(true);
+  expect(Object.keys(sources).some((file) => file.startsWith('../app/rendering/props/'))).toBe(true);
+  expect(Object.keys(sources).some((file) => file.startsWith('../packages/voxel-actors/src/'))).toBe(true);
   expect(outside).toEqual([]);
 });

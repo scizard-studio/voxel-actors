@@ -1,8 +1,9 @@
 import { expect, it } from 'vitest';
 import { Group, Mesh, Vector3 } from 'three';
-import { createFigure } from '../figure';
-import { createBody, createFace, createHair, createHat, createMotion, dress, expressions, faceOptionsFor, hairUnder } from '../packages/characters/src';
-import { actionHand, equipItem } from '../props/equipment';
+import { createFigure } from '../app/rendering/figure';
+import { createBody, createFace, createHair, createHat, createMotion, dress, expressions, faceOptionsFor, hairUnder } from '../packages/voxel-actors/src';
+import { actionHand } from '../packages/voxel-actors/src';
+import { equipItem } from '../app/rendering/props/equipment';
 
 it('reduces the dressed mesh count while preserving the posed hand and expression', () => {
   const body = dress(createBody({ age: 'adult', gender: 'female' }), 'builder');

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { sculptGeometry } from '../character-study/voxelGeometry';
+import { sculptGeometry } from '../app/rendering/voxelGeometry';
 
 it('emits only the exterior of overlapping blocks, even across different colors', () => {
   const geometry = sculptGeometry([
@@ -26,7 +26,7 @@ it('emits only the exterior of overlapping blocks, even across different colors'
     expect(faces.has(key)).toBe(false);
     faces.add(key);
   }
-  // The union is one 3 × 2 × 2 cuboid with surface area 32.
+  // The union is one 3 ï¿½ 2 ï¿½ 2 cuboid with surface area 32.
   expect(area).toBe(32);
   geometry.dispose();
 });

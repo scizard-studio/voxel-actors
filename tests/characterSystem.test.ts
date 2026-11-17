@@ -4,9 +4,9 @@ import {
   measureSolids, resolveProportions, applyOutfit, dress, outfits,
   CHARACTER_SCALE, metresPerVoxel, voxelScaleFactor,
   type Age, type Gender, type BodyRegionId, type BodySpec, type BodyBox, type JointName,
-} from '../packages/characters/src';
-import { painted } from '../packages/characters/src/humanoid/outfits/paint';
-import { roleColors, skinTones, hairColors } from '../palette';
+} from '../packages/voxel-actors/src';
+import { painted } from '../packages/voxel-actors/src/humanoid/appearance/outfits/paint';
+import { roleColors, skinTones, hairColors } from '../app/studio/palette';
 
 const palette = roleColors(skinTones[0], hairColors[0]);
 const spec = { age: 'adult', gender: 'female' } as const;
