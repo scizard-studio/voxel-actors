@@ -2,17 +2,20 @@ import { between, mirrored } from '../../model.js';
 import type { Outfit } from './outfits.js';
 
 const BODICE_OVERHANG = 0.22;
+const ARM_SIDE_TRIM = 1;
+const SLEEVE_GAP = 0.03;
 
 export const squareNeckDress: Outfit = {
   paint: { waist: 'top', hips: 'top', feet: 'shoes', handLeft: 'top', handRight: 'top' },
   hat: 'roseCrown',
   colors: { top: 0xc91c24, clothShade: 0x991721, shoes: 0xad1620 },
-  build({ proportions: { chest, waist, pelvis, leg } }) {
+  build({ proportions: { arm, chest, waist, pelvis, leg } }) {
     const bodiceTop = waist[1] + chest[1] * 0.76;
     const halfChest = chest[0] / 2;
     const chestFront = chest[2] / 2;
+    const trim = Math.min(ARM_SIDE_TRIM, halfChest * 0.2);
     const strap = between([halfChest * 0.6, bodiceTop, -chestFront - 0.17],
-      [halfChest + BODICE_OVERHANG, waist[1] + chest[1] + 0.12, chestFront + 0.17], 'top');
+      [halfChest + BODICE_OVERHANG - trim, waist[1] + chest[1] + 0.12, chestFront + 0.17], 'top');
     const bodice = [
       between([-halfChest - BODICE_OVERHANG, waist[1], -chestFront - BODICE_OVERHANG],
         [halfChest + BODICE_OVERHANG, bodiceTop, chestFront + BODICE_OVERHANG], 'top'),
@@ -36,9 +39,14 @@ export const squareNeckDress: Outfit = {
       }
     }
 
+    const armHalf = arm.thick / 2;
+    const sleeve = between([-armHalf + BODICE_OVERHANG + SLEEVE_GAP, armHalf - arm.upper * 0.43, -armHalf - 0.2],
+      [armHalf + 0.15, armHalf + 0.18, armHalf + 0.2], 'top');
     return [
       { joint: 'waist', boxes: bodice },
       { joint: 'pelvis', boxes: skirt },
+      { joint: 'shoulderLeft', boxes: [sleeve] },
+      { joint: 'shoulderRight', boxes: [mirrored(sleeve)] },
     ];
   },
 };
