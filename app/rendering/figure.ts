@@ -43,6 +43,11 @@ function geometryOf(boxes: readonly Box[], appearance: Appearance): BufferGeomet
 export function createFigure(body: Body, face: Face, worn: readonly Worn[], appearance: Appearance = {}): Figure {
   const root = new Group();
   const material = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const eyeMaterial = material.clone();
+  // Give the nearly flush eyes a depth bias against the skin while keeping depth testing.
+  eyeMaterial.polygonOffset = true;
+  eyeMaterial.polygonOffsetFactor = -1;
+  eyeMaterial.polygonOffsetUnits = -1;
   const geometries: BufferGeometry[] = [];
   const joints = new Map<JointName, Group>();
   for (const joint of body.joints) {
@@ -94,6 +99,7 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], appe
       // A shape such as "no blush" has nothing to draw.
       if (boxes.length === 0) continue;
       const mesh = addMesh(boxes, face.joint);
+      if (feature === 'eyes') mesh.material = eyeMaterial;
       if (feature === 'eyes' || feature === 'blush') mesh.castShadow = false;
       faceMeshes.push({ feature, shape, mesh });
     }
@@ -129,6 +135,7 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], appe
     dispose() {
       for (const geometry of geometries) geometry.dispose();
       material.dispose();
+      eyeMaterial.dispose();
     },
   };
 }
