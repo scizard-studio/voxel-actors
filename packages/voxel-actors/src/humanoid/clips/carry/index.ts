@@ -1,7 +1,6 @@
-import { X, type Clip } from '../pose.js';
+import { X } from '../pose.js';
 import { clipPose } from '../../../core/pose.js';
 import type { PoseLayer } from '../../../core/layers.js';
-import { STRIDE_BOB, STRIDES_PER_SECOND, stride } from '../stride.js';
 
 // The upper arms reach this far forward and the elbows bend the rest of a right angle, so the
 // forearms are level and a load rests flat on them.
@@ -22,17 +21,3 @@ export function carryArms(weight = 1): PoseLayer {
   };
 }
 
-/**
- * Walking with a load held out in front in both hands: the arms stay still,
- * forearms level, and the back leans a touch back against the weight.
- * `carryingRoom` says where a load goes.
- */
-export const carry: Clip = {
-  cyclesPerSecond: STRIDES_PER_SECOND,
-  bob: STRIDE_BOB,
-  swings: [
-    ...stride,
-    ...arms,
-    { joint: 'waist', axis: X, size: 0, base: -0.05 },
-  ],
-};

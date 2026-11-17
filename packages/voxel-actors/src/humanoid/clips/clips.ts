@@ -1,6 +1,5 @@
 ﻿import type { Body } from '../body.js';
 import { poseOf, type Pose } from '../../core/pose.js';
-import { carry } from './carry/index.js';
 import { hulaHoop } from './hulaHoop/index.js';
 import { idle } from './idle.js';
 import { plant } from './plant.js';
@@ -15,7 +14,7 @@ import { wave } from './wave.js';
  * folder. A new motion is a new file, listed here: it is then offered in the
  * studio and checked on every body without anything else changing.
  */
-export const clips = { idle, walk, wave, talk, carry, plant, hulaHoop, ropeSkip } satisfies Record<string, Clip>;
+export const clips = { idle, walk, wave, talk, plant, hulaHoop, ropeSkip } satisfies Record<string, Clip>;
 
 export type ClipName = keyof typeof clips;
 

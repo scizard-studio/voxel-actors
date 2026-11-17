@@ -442,6 +442,11 @@ select:focus-visible,
   padding:6px 11px;
 }
 
+.control:disabled {
+  cursor:default;
+  opacity:0.55;
+}
+
 select {
   width:100%;
 }

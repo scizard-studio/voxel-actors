@@ -32,7 +32,7 @@ export interface StudioState {
   hat: HatStyleName | null;
   expression: ExpressionName;
   clip: ClipName;
-  carryLayer: boolean;
+  prop: 'none' | 'crate';
   equipment: Equipment;
   detail: 'auto' | 'high' | 'low';
   guide: boolean;
@@ -71,7 +71,7 @@ function section(parent: HTMLElement, title: string): HTMLElement {
 }
 
 /** A row of buttons, one of them pressed. Pressing another calls `onPick`. */
-function segmented<T>(parent: HTMLElement, title: string, choices: readonly Choice<T>[], start: T, onPick: (value: T) => void): void {
+function segmented<T>(parent: HTMLElement, title: string, choices: readonly Choice<T>[], start: T, onPick: (value: T) => void): HTMLButtonElement[] {
   const row = section(parent, title);
   const buttons = choices.map((choice) => {
     const button = document.createElement('button');
@@ -85,6 +85,7 @@ function segmented<T>(parent: HTMLElement, title: string, choices: readonly Choi
     row.append(button);
     return button;
   });
+  return buttons;
 }
 
 /**
@@ -198,28 +199,34 @@ export function createPanel(
     state.expression,
     set('expression'),
   );
-  segmented(
+  const motionChoices = (Object.keys(clips) as ClipName[]).map((clip) => ({ value: clip, name: label(clip) }));
+  const motionButtons = segmented(
     panel,
-    'Motion',
-    (Object.keys(clips) as ClipName[]).map((clip) => ({ value: clip, name: label(clip) })),
+    'Movement and activities',
+    motionChoices,
     state.clip,
     set('clip'),
   );
-  segmented(panel, 'Crate hold · Idle / Walk', [
-    { value: false, name: 'Off' },
-    { value: true, name: 'Hold crate' },
-  ], state.carryLayer, set('carryLayer'));
+  const propButtons = segmented(panel, 'Props', [
+    { value: 'none', name: 'None' },
+    { value: 'crate', name: 'Crate' },
+  ], state.prop, set('prop'));
+  const propStatus = document.createElement('p');
+  propStatus.setAttribute('role', 'status');
+  propStatus.className = 'studio__readout';
+  propButtons[0].closest('section')!.append(propStatus);
+  const handButtons: HTMLButtonElement[] = [];
   for (const [hand, title] of [['handLeft', 'Left hand'], ['handRight', 'Right hand']] as const) {
     const items = (Object.keys(equipmentItems) as EquipmentName[])
       .filter(name => equipmentItems[name].hands.includes(hand));
-    segmented<EquipmentName | null>(panel, title, [
+    handButtons.push(...segmented<EquipmentName | null>(panel, title, [
       { value: null, name: 'Empty' },
       ...items.map(value => ({ value, name: equipmentItems[value].label })),
     ], state.equipment[hand], value => {
       state.equipment[hand] = value;
       onChange();
       updateActions();
-    });
+    }));
   }
   const actions = section(panel, 'Equipment actions');
   const actionStatus = document.createElement('p');
@@ -227,8 +234,20 @@ export function createPanel(
   actionStatus.className = 'studio__readout';
   actions.parentElement!.append(actionStatus);
   function updateActions(): void {
+    const holdingCrate = state.prop === 'crate';
+    const supportsCrate = (clip: ClipName): boolean => clip === 'idle' || clip === 'walk';
+    propButtons[1].disabled = !supportsCrate(state.clip);
+    propStatus.textContent = holdingCrate ? 'Both hands occupied.' : propButtons[1].disabled ? 'Crate is available with Idle or Walk.' : '';
+    for (const button of handButtons) button.disabled = holdingCrate;
+    for (const [index, button] of motionButtons.entries()) {
+      button.disabled = holdingCrate && !supportsCrate(motionChoices[index].value);
+    }
     actions.replaceChildren();
     actionStatus.textContent = '';
+    if (holdingCrate) {
+      actions.parentElement!.hidden = true;
+      return;
+    }
     for (const [hand, side] of [['handLeft', 'Left'], ['handRight', 'Right']] as const) {
       const name = state.equipment[hand];
       const item = name === null ? undefined : equipmentItems[name];

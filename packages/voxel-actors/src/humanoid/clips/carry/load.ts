@@ -1,5 +1,6 @@
 import type { Body } from '../../body.js';
-import { poseAt } from '../clips.js';
+import { carryArms } from './index.js';
+import { withPosture } from '../../../core/pose.js';
 import { pointsIn, posedJoints, toLocal, toWorld } from '../../../core/kinematics.js';
 import type { JointName } from '../../skeleton.js';
 
@@ -39,14 +40,14 @@ function cut(corners: readonly Point[], axis: number, level: number, keep: 'abov
 }
 
 /**
- * The room for a load carried in both hands, on a body playing the `carry`
- * clip: a box on the waist joint resting on the forearms and hands, centred
+ * The room for a load carried in both hands: a box on the waist joint
+ * resting on the forearms and hands, centred
  * between them, as wide as the hands reach, from just in front of the chest to
  * the fingertips, and up to just under the chin. The arms hold still while
- * carrying, so a load put here stays in place for the whole clip.
+ * carrying, so a load put here stays in place as the base motion changes.
  */
 export function carryingRoom(body: Body): Room {
-  const places = posedJoints(body, poseAt('carry', 0, body));
+  const places = posedJoints(body, withPosture(carryArms().pose, body.posture));
   const waist = places.get('waist');
   if (waist === undefined) throw new Error('The waist joint was not placed.');
   /** The corners of each block of some parts, in the waist's space. */

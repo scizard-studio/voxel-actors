@@ -1,6 +1,5 @@
 import type { Body, ClipName, Worn } from '../../../packages/voxel-actors/src';
 import type { Figure } from '../figure';
-import { holdCrate } from './crate';
 import { holdHoop } from './hoop';
 import type { HeldProp } from './pieces';
 import { holdRope } from './rope';
@@ -14,7 +13,6 @@ type PropMaker = (figure: Figure, body: Body, worn: readonly Worn[]) => HeldProp
  * brings its own things.
  */
 const props: Partial<Record<ClipName, PropMaker>> = {
-  carry: holdCrate,
   hulaHoop: holdHoop,
   ropeSkip: holdRope,
 };

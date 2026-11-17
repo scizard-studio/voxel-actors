@@ -23,6 +23,7 @@ import {
 import { createFigure, type Figure } from '../rendering/figure';
 import type { HeldProp } from '../rendering/props/pieces';
 import { holdProp } from '../rendering/props/props';
+import { holdCrate } from '../rendering/props/crate';
 import { createEquipmentActions, equipmentItems } from '../../packages/voxel-actors/src';
 import { equipItem } from '../rendering/props/equipment';
 import { clothColors, hairColors, roleColors, skinTones } from './palette';
@@ -60,7 +61,7 @@ function startStudio(): void {
     hat: null,
     expression: 'normal',
     clip: 'idle',
-    carryLayer: false,
+    prop: 'none',
     equipment: { handLeft: null, handRight: null },
     guide: true,
     sockets: false,
@@ -122,23 +123,21 @@ function startStudio(): void {
   let prop: HeldProp | null = null;
   let equipped: HeldProp[] = [];
   let builtAppearance = '';
-  let attachedClip: StudioState['clip'] | undefined;
-  const canLayerCarry = (): boolean => state.clip === 'idle' || state.clip === 'walk';
-  const isLayeredCarry = (): boolean => state.carryLayer && canLayerCarry();
+  let attachedProp: StudioState['clip'] | 'crate' | undefined;
   const carryJoints = carryArms().joints;
   let carryWeight = 0;
   const reservedJoints = () => prop !== null || carryWeight > 0 ? carryJoints : [];
   const rebuild = (): void => {
     guide.visible = state.guide;
-    const propClip = isLayeredCarry() ? 'carry' : state.clip;
+    const propKey = state.prop === 'crate' ? 'crate' : state.clip;
     const appearanceKey = JSON.stringify([
       state.age, state.gender, state.tone, state.hair, state.hairColor,
       state.outfit, state.clothColor, state.hat, state.sockets,
       state.equipment.handLeft, state.equipment.handRight,
     ]);
-    if (builtAppearance === appearanceKey && attachedClip === propClip) return;
+    if (builtAppearance === appearanceKey && attachedProp === propKey) return;
     builtAppearance = appearanceKey;
-    attachedClip = propClip;
+    attachedProp = propKey;
     if (figure !== null) {
       scene.remove(figure.root);
       figure.dispose();
@@ -161,7 +160,7 @@ function startStudio(): void {
     const colors = roleColors(skinTones[state.tone], hairColors[state.hairColor], dressed?.colors);
     figure = createFigure(body, face, worn, { palette: colors });
     markers = state.sockets ? addSocketMarkers(figure, body.sockets) : null;
-    prop = holdProp(figure, body, worn, propClip);
+    prop = propKey === 'crate' ? holdCrate(figure, body) : holdProp(figure, body, worn, state.clip);
     equipped = [];
     for (const hand of ['handLeft', 'handRight'] as const) {
       const name = state.equipment[hand];
@@ -195,9 +194,9 @@ function startStudio(): void {
     const seconds = now / MS;
     const blendStep = (seconds - (previousFrame ?? seconds)) / CARRY_BLEND_SECONDS;
     previousFrame = seconds;
-    if (!canLayerCarry()) carryWeight = 0;
-    else if (isLayeredCarry()) carryWeight = Math.min(1, carryWeight + blendStep);
-    else carryWeight = Math.max(0, carryWeight - blendStep);
+    if (state.prop === 'crate') carryWeight = Math.min(1, carryWeight + blendStep);
+    else if (prop === null) carryWeight = Math.max(0, carryWeight - blendStep);
+    else carryWeight = 0;
     // Picking another motion glides into it. Asking for the one already playing changes nothing.
     motion.play(state.clip, seconds);
     if (figure !== null && body !== null) {
@@ -205,7 +204,7 @@ function startStudio(): void {
       if (carryWeight > 0) layers.push(carryArms(carryWeight));
       figure.pose(motion.poseAt(seconds, body, layers));
       // Held things show once the arms have glided into the pose that holds them.
-      prop?.show(isLayeredCarry() ? carryWeight === 1 : !motion.gliding(seconds));
+      prop?.show(state.prop === 'crate' ? carryWeight === 1 : !motion.gliding(seconds));
       prop?.update(motion.elapsed(seconds));
       // A motion may move the face too, as talking moves the mouth.
       const face = faceAt(state.expression, seconds);
