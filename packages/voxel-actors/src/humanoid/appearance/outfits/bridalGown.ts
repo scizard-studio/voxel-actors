@@ -5,6 +5,9 @@ const SKIRT_TIERS = 9;
 const DRAPE_TIERS = 7;
 const FABRIC_EDGE = 0.24;
 const THREAD_DEPTH = 0.04;
+const NECKLINE_DROP = 0.65;
+const WAIST_SEAM_OVERLAP = 0.18;
+const WAIST_SEAM_CLEARANCE = 0.12;
 
 export const bridalGown: Outfit = {
   paint: {},
@@ -13,8 +16,8 @@ export const bridalGown: Outfit = {
     const legHeight = leg.upper + leg.shin + leg.foot;
     const hem = -legHeight + 0.28;
     const tierHeight = (pelvis[1] - hem) / SKIRT_TIERS;
-    const skirtHalfWidth = Math.max(pelvis[0], leg.gap + 2 * leg.wide) / 2;
-    const skirtHalfDepth = Math.max(pelvis[2], leg.deep + leg.toe) / 2;
+    const skirtHalfWidth = Math.max(pelvis[0], leg.gap + 2 * leg.wide, waist[0] + 2 * WAIST_SEAM_CLEARANCE) / 2;
+    const skirtHalfDepth = Math.max(pelvis[2], leg.deep + leg.toe, waist[2] + 2 * WAIST_SEAM_CLEARANCE) / 2;
     const skirt: Box[] = [];
     for (let tier = 0; tier < SKIRT_TIERS; tier++) {
       const flare = 1 - tier / (SKIRT_TIERS - 1);
@@ -22,7 +25,9 @@ export const bridalGown: Outfit = {
       const top = hem + (tier + 1) * tierHeight;
       const side = skirtHalfWidth + FABRIC_EDGE + 1.35 * flare;
       const front = skirtHalfDepth + FABRIC_EDGE + 1.8 * flare;
-      skirt.push(between([-side, bottom, -front], [side, top, front], 'top'));
+      // The top tier covers the bottom of the waist instead of sharing its seam plane.
+      const skirtTop = tier === SKIRT_TIERS - 1 ? top + WAIST_SEAM_OVERLAP : top;
+      skirt.push(between([-side, bottom, -front], [side, skirtTop, front], 'top'));
 
       // Two stepped wraps cross the skirt at different heights.
       const wrapStep = tier % 4;
@@ -38,14 +43,16 @@ export const bridalGown: Outfit = {
     const chestSide = chest[0] / 2 + FABRIC_EDGE;
     const chestFront = chest[2] / 2 + FABRIC_EDGE;
     const shoulder = waist[1] + chest[1];
+    const bodiceHeight = chest[1] - Math.min(NECKLINE_DROP, chest[1] * 0.24);
+    const bodiceTop = waist[1] + bodiceHeight;
     const upper: Box[] = [
       between([-waist[0] / 2 - FABRIC_EDGE, 0, -waist[2] / 2 - FABRIC_EDGE],
         [waist[0] / 2 + FABRIC_EDGE, waist[1], waist[2] / 2 + FABRIC_EDGE], 'top'),
-      between([-chestSide, waist[1], -chestFront], [chestSide, shoulder, chestFront], 'top'),
+      between([-chestSide, waist[1], -chestFront], [chestSide, bodiceTop, chestFront], 'top'),
       between([-chestSide, waist[1], chestFront], [chestSide, waist[1] + 0.28, chestFront + 0.07], 'clothShade'),
     ];
     for (const [row, spread] of [0.46, 0.32, 0.24, 0.29, 0.4, 0.5].entries()) {
-      const y = waist[1] + chest[1] * (0.21 + row * 0.115);
+      const y = waist[1] + (bodiceHeight - 0.23) * (0.21 + row * 0.115);
       const x = chestSide * spread;
       const stitch = between([x, y, chestFront], [x + 0.24, y + 0.23, chestFront + THREAD_DEPTH], 'trim');
       upper.push(stitch, mirrored(stitch));
