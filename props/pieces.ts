@@ -42,6 +42,7 @@ export function createPieces(): Pieces {
         },
         update: move,
         dispose() {
+          holder.removeFromParent();
           for (const [mesh, material] of made) {
             mesh.geometry.dispose();
             material.dispose();

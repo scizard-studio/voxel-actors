@@ -60,6 +60,8 @@ export type SocketName = 'handLeft' | 'handRight' | 'headTop';
 export interface Socket {
   readonly joint: JointName;
   readonly at: readonly [number, number, number];
+  /** Optional joint-local orientation in radians around X, Y and Z. */
+  readonly rotation?: readonly [number, number, number];
 }
 
 /** A body ready to draw: its joints, parent before child, the parts that hang on them, and its head's measurements. */

@@ -22,6 +22,7 @@ import {
 import { createFigure, type Figure } from '../figure';
 import type { HeldProp } from '../props/pieces';
 import { holdProp } from '../props/props';
+import { actionHand, equipItem } from '../props/equipment';
 import { clothColors, hairColors, roleColors, skinTones } from '../palette';
 import { createPanel, type StudioState } from '../panel';
 import { METRES_PER_VOXEL, createScaleGuide } from '../scaleGuide';
@@ -56,6 +57,7 @@ function startStudio(): void {
     hat: null,
     expression: 'normal',
     clip: 'idle',
+    equipment: { handLeft: null, handRight: null },
     guide: true,
     sockets: false,
     detail: 'auto',
@@ -113,6 +115,8 @@ function startStudio(): void {
   let figure: Figure | null = null;
   let markers: SocketMarkers | null = null;
   let prop: HeldProp | null = null;
+  let equipped: HeldProp[] = [];
+  let workHand = actionHand(state.equipment, 'work');
   let builtAppearance = '';
   let attachedClip: StudioState['clip'] | undefined;
   const rebuild = (): void => {
@@ -120,6 +124,7 @@ function startStudio(): void {
     const appearanceKey = JSON.stringify([
       state.age, state.gender, state.tone, state.hair, state.hairColor,
       state.outfit, state.clothColor, state.hat, state.sockets,
+      state.equipment.handLeft, state.equipment.handRight,
     ]);
     if (builtAppearance === appearanceKey && attachedClip === state.clip) return;
     builtAppearance = appearanceKey;
@@ -130,6 +135,7 @@ function startStudio(): void {
     }
     markers?.dispose();
     prop?.dispose();
+    for (const item of equipped) item.dispose();
     const bare = createBody({ age: state.age, gender: state.gender });
     const dressed = dressAsPicked(bare, state);
     body = dressed ?? bare;
@@ -146,6 +152,13 @@ function startStudio(): void {
     figure = createFigure(body, face, worn, { palette: colors });
     markers = state.sockets ? addSocketMarkers(figure, body.sockets) : null;
     prop = holdProp(figure, body, worn, state.clip);
+    equipped = [];
+    for (const hand of ['handLeft', 'handRight'] as const) {
+      const name = state.equipment[hand];
+      if (name !== null) equipped.push(equipItem(figure, body, hand, name));
+    }
+    for (const item of equipped) item.show(prop === null);
+    workHand = actionHand(state.equipment, 'work');
     scene.add(figure.root);
     guide.visible = state.guide;
   };
@@ -169,7 +182,11 @@ function startStudio(): void {
   const frame = (now: number): void => {
     const seconds = now / MS;
     // Picking another motion glides into it. Asking for the one already playing changes nothing.
-    motion.play(state.clip, seconds);
+    let clip: Parameters<typeof motion.play>[0] = state.clip;
+    if (state.clip === 'work') {
+      clip = workHand === undefined ? 'idle' : workHand === 'handLeft' ? 'workLeft' : 'work';
+    }
+    motion.play(clip, seconds);
     if (figure !== null && body !== null) {
       figure.pose(motion.poseAt(seconds, body));
       // Held things show once the arms have glided into the pose that holds them.
@@ -177,7 +194,7 @@ function startStudio(): void {
       prop?.update(motion.elapsed(seconds));
       // A motion may move the face too, as talking moves the mouth.
       const face = faceAt(state.expression, seconds);
-      const moving = clips[motion.clip].face;
+      const moving = clips[state.clip].face;
       figure.showFace(moving === undefined ? face : moving(face, motion.elapsed(seconds), 0));
     }
     controls.update();
@@ -192,8 +209,9 @@ function startStudio(): void {
       const threshold = reducedDetail ? RESTORE_ABOVE_PX : REDUCE_BELOW_PX;
       reducedDetail = state.detail === 'low' || (state.detail === 'auto' && screenHeight < threshold);
       figure.setDetail(reducedDetail ? 'low' : 'high');
+      const workHint = state.clip === 'work' && workHand === undefined ? ' · Equip a hammer to work' : '';
       panel.setReadout(body.height + ' voxels · ' + (body.height * METRES_PER_VOXEL).toFixed(2)
-        + ' m · ' + (reducedDetail ? 'Reduced detail' : 'Full detail'));
+        + ' m · ' + (reducedDetail ? 'Reduced detail' : 'Full detail') + workHint);
     }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);

@@ -1,7 +1,6 @@
 import type { Body, ClipName, Worn } from '../packages/characters/src';
 import type { Figure } from '../figure';
 import { holdCrate } from './crate';
-import { holdHammer } from './hammer';
 import { holdHoop } from './hoop';
 import type { HeldProp } from './pieces';
 import { holdRope } from './rope';
@@ -16,7 +15,6 @@ type PropMaker = (figure: Figure, body: Body, worn: readonly Worn[]) => HeldProp
  */
 const props: Partial<Record<ClipName, PropMaker>> = {
   carry: holdCrate,
-  work: holdHammer,
   hulaHoop: holdHoop,
   ropeSkip: holdRope,
 };

@@ -12,6 +12,7 @@ import {
   type OutfitName,
 } from './packages/characters/src';
 import { clothColors, hairColors, skinTones } from './palette';
+import { equipmentItems, type Equipment, type EquipmentName } from './props/equipment';
 
 /** Everything picked in the studio. */
 export interface StudioState {
@@ -31,6 +32,7 @@ export interface StudioState {
   hat: HatStyleName | null;
   expression: ExpressionName;
   clip: ClipName;
+  equipment: Equipment;
   detail: 'auto' | 'high' | 'low';
   guide: boolean;
   /** Whether the attachment points, the body's sockets, are marked. */
@@ -200,6 +202,17 @@ export function createPanel(
     state.clip,
     set('clip'),
   );
+  for (const [hand, title] of [['handLeft', 'Left hand'], ['handRight', 'Right hand']] as const) {
+    const items = (Object.keys(equipmentItems) as EquipmentName[])
+      .filter(name => equipmentItems[name].hands.includes(hand));
+    segmented<EquipmentName | null>(panel, title, [
+      { value: null, name: 'Empty' },
+      ...items.map(value => ({ value, name: equipmentItems[value].label })),
+    ], state.equipment[hand], value => {
+      state.equipment[hand] = value;
+      onChange();
+    });
+  }
   segmented(
     panel,
     'Size guide',

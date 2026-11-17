@@ -120,6 +120,7 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], appe
     },
     attach(object, socket) {
       object.position.set(...socket.at);
+      if (socket.rotation) object.rotation.set(...socket.rotation);
       joints.get(socket.joint)?.add(object);
     },
     dispose() {

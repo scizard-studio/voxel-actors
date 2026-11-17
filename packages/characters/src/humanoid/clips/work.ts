@@ -14,3 +14,17 @@ export const work: Clip = {
     { joint: 'elbowRight', axis: X, size: 0.3, base: -0.6, phase: Math.PI / 2 },
   ],
 };
+
+/** Same stroke with the arm roles exchanged. The work clip only rotates around X. */
+export const workLeft: Clip = {
+  ...work,
+  swings: work.swings?.map(swing => {
+    switch (swing.joint) {
+      case 'shoulderLeft': return { ...swing, joint: 'shoulderRight' };
+      case 'shoulderRight': return { ...swing, joint: 'shoulderLeft' };
+      case 'elbowLeft': return { ...swing, joint: 'elbowRight' };
+      case 'elbowRight': return { ...swing, joint: 'elbowLeft' };
+      default: return swing;
+    }
+  }),
+};
