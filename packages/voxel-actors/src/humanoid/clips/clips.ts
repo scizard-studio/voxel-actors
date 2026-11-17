@@ -9,14 +9,13 @@ import { ropeSkip } from './ropeSkip/index.js';
 import { talk } from './talk/index.js';
 import { walk } from './walk.js';
 import { wave } from './wave.js';
-import { work } from './work.js';
 
 /**
  * Every motion, by name, in the order they are offered. Each is a file in this
  * folder. A new motion is a new file, listed here: it is then offered in the
  * studio and checked on every body without anything else changing.
  */
-export const clips = { idle, walk, wave, talk, carry, work, plant, hulaHoop, ropeSkip } satisfies Record<string, Clip>;
+export const clips = { idle, walk, wave, talk, carry, plant, hulaHoop, ropeSkip } satisfies Record<string, Clip>;
 
 export type ClipName = keyof typeof clips;
 

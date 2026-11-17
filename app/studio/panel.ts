@@ -12,7 +12,7 @@ import {
   type OutfitName,
 } from '../../packages/voxel-actors/src';
 import { clothColors, hairColors, skinTones } from './palette';
-import { equipmentItems, type Equipment, type EquipmentName } from '../../packages/voxel-actors/src';
+import { equipmentItems, type Equipment, type EquipmentHand, type EquipmentName, type UseResult } from '../../packages/voxel-actors/src';
 
 /** Everything picked in the studio. */
 export interface StudioState {
@@ -96,6 +96,7 @@ export function createPanel(
   state: StudioState,
   onChange: () => void,
   onView: (view: 'front' | 'threeQuarter') => void,
+  onUse: (hand: EquipmentHand) => UseResult,
 ): Panel {
   const panel = document.createElement('aside');
   panel.className = 'workspace-panel studio__panel';
@@ -113,6 +114,7 @@ export function createPanel(
     (value: StudioState[K]): void => {
       state[key] = value;
       onChange();
+      updateActions();
     };
 
   segmented(
@@ -216,8 +218,33 @@ export function createPanel(
     ], state.equipment[hand], value => {
       state.equipment[hand] = value;
       onChange();
+      updateActions();
     });
   }
+  const actions = section(panel, 'Equipment actions');
+  const actionStatus = document.createElement('p');
+  actionStatus.setAttribute('role', 'status');
+  actionStatus.className = 'studio__readout';
+  actions.parentElement!.append(actionStatus);
+  function updateActions(): void {
+    actions.replaceChildren();
+    actionStatus.textContent = '';
+    for (const [hand, side] of [['handLeft', 'Left'], ['handRight', 'Right']] as const) {
+      const name = state.equipment[hand];
+      const item = name === null ? undefined : equipmentItems[name];
+      if (!item?.action) continue;
+      const button = document.createElement('button');
+      button.className = 'control';
+      button.textContent = `${side}: ${item.action.label} (${item.label})`;
+      button.addEventListener('click', () => {
+        const result = onUse(hand);
+        actionStatus.textContent = result === 'busy' ? 'Required arm is busy.' : '';
+      });
+      actions.append(button);
+    }
+    actions.parentElement!.hidden = actions.childElementCount === 0;
+  }
+  updateActions();
   segmented(
     panel,
     'Size guide',

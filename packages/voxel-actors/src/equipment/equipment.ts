@@ -1,5 +1,6 @@
 import type { Body, Socket, SocketName } from '../humanoid/body.js';
 import { hammer } from './items/hammer.js';
+import { armAction, type EquipmentAction } from './actions.js';
 
 const hands = ['handRight', 'handLeft'] as const satisfies readonly SocketName[];
 export type EquipmentHand = (typeof hands)[number];
@@ -8,7 +9,7 @@ type Triple = readonly [number, number, number];
 export interface EquipmentItem {
   readonly label: string;
   readonly hands: readonly EquipmentHand[];
-  readonly action?: 'work';
+  readonly action?: EquipmentAction;
   readonly grip: Triple;
   readonly blocks: readonly (readonly [color: number, size: Triple, center: Triple])[];
 }
@@ -18,6 +19,12 @@ export const equipmentItems: Readonly<Record<'hammer' | 'sword' | 'shield', Equi
   sword: {
     label: 'Sword',
     hands,
+    action: armAction('Swing', 0.65, [
+      [[-0.5, 0, -0.45], [-0.7, 0, 0]],
+      [[-0.85, 0.5, -0.85], [-0.8, 0, 0]],
+      [[-1.35, -0.65, -0.1], [-0.2, 0, 0]],
+      [[-0.8, -0.4, -0.15], [-0.45, 0, 0]],
+    ]),
     grip: [Math.PI / 2, 0, 0],
     blocks: [
       [0x785237, [0.8, 2, 0.8], [0, 0, 0]],
@@ -29,6 +36,9 @@ export const equipmentItems: Readonly<Record<'hammer' | 'sword' | 'shield', Equi
   shield: {
     label: 'Shield',
     hands,
+    action: armAction('Block', 0.9, [
+      [[-0.9, -0.4, 0.1], [-1.2, 0, 0]],
+    ]),
     grip: [0, 0, 0],
     blocks: [
       [0x607687, [5.5, 5.5, 0.75], [0, 0.5, 1.35]],
@@ -42,13 +52,6 @@ export const equipmentItems: Readonly<Record<'hammer' | 'sword' | 'shield', Equi
 
 export type EquipmentName = keyof typeof equipmentItems;
 export type Equipment = Record<EquipmentHand, EquipmentName | null>;
-
-export function actionHand(equipment: Equipment, action: NonNullable<EquipmentItem['action']>): EquipmentHand | undefined {
-  return hands.find(hand => {
-    const name = equipment[hand];
-    return name !== null && equipmentItems[name].hands.includes(hand) && equipmentItems[name].action === action;
-  });
-}
 
 export function equipmentGrip(body: Body, hand: EquipmentHand, item: EquipmentItem): Socket {
   if (!item.hands.includes(hand)) throw new Error(item.label + ' cannot be equipped in ' + hand + '.');

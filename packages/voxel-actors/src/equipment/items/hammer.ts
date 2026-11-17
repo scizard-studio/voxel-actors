@@ -1,4 +1,5 @@
 import type { EquipmentItem } from '../equipment.js';
+import { armAction } from '../actions.js';
 
 const HANDLE = 0x9b6b3d;
 const METAL = 0x7d848c;
@@ -9,7 +10,12 @@ const HEAD: readonly [number, number, number] = [2, 4, 2];
 export const hammer: EquipmentItem = {
   label: 'Hammer',
   hands: ['handLeft', 'handRight'],
-  action: 'work',
+  action: armAction('Strike', 0.65, [
+    [[-0.85, 0, -0.25], [-0.6, 0, 0]],
+    [[-1.35, 0, -0.45], [-0.8, 0, 0]],
+    [[-0.85, 0, -0.25], [-0.65, 0, 0]],
+    [[-0.6, 0, -0.15], [-0.55, 0, 0]],
+  ]),
   grip: [Math.PI / 2, 0, 0],
   blocks: [
     [HANDLE, [1, HANDLE_LENGTH, 1], [0, HANDLE_LENGTH / 2, 0]],

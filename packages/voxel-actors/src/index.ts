@@ -50,7 +50,9 @@ export type { Dressed, EverydayOutfitName, Outfit, OutfitName, WorkOutfitName } 
 export { createMotion } from './humanoid/motion.js';
 export type { Motion } from './humanoid/motion.js';
 export type { Joint, JointName } from './humanoid/skeleton.js';
-export { actionHand, equipmentGrip, equipmentItems } from './equipment/equipment.js';
+export { equipmentGrip, equipmentItems } from './equipment/equipment.js';
+export { armAction, createEquipmentActions } from './equipment/actions.js';
+export type { EquipmentAction, UseResult } from './equipment/actions.js';
 export type { Equipment, EquipmentHand, EquipmentItem, EquipmentName } from './equipment/equipment.js';
 export { crateFor, hoopFor, skippingRopeFor } from './equipment/items/motionProps.js';
 export type { PropBlock } from './equipment/items/motionProps.js';

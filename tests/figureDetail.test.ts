@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { Group, Mesh, Vector3 } from 'three';
 import { createFigure } from '../app/rendering/figure';
 import { createBody, createFace, createHair, createHat, createMotion, dress, expressions, faceOptionsFor, hairUnder } from '../packages/voxel-actors/src';
-import { actionHand } from '../packages/voxel-actors/src';
+import { carryArms, createEquipmentActions, equipmentItems } from '../packages/voxel-actors/src';
 import { equipItem } from '../app/rendering/props/equipment';
 
 it('reduces the dressed mesh count while preserving the posed hand and expression', () => {
@@ -37,14 +37,9 @@ it('reduces the dressed mesh count while preserving the posed hand and expressio
   }
 });
 
-it('swaps the striking arm and keeps the hammer aligned in both detail levels', () => {
+it('keeps the hammer grip aligned in either hand through an action and LOD switch', () => {
   const body = createBody({ age: 'adult', gender: 'female' });
   const figure = createFigure(body, createFace(body.head.face, faceOptionsFor(body.spec.gender)), []);
-  const right = createMotion('work').poseAt(0.2, body);
-  const left = createMotion('workLeft').poseAt(0.2, body);
-  expect(left.turns.shoulderLeft).toEqual(right.turns.shoulderRight);
-  expect(left.turns.elbowLeft).toEqual(right.turns.elbowRight);
-  expect(left.turns.elbowRight).toEqual(right.turns.elbowLeft);
   try {
     for (const hand of ['handLeft', 'handRight'] as const) {
       const attach = figure.attach.bind(figure);
@@ -56,7 +51,10 @@ it('swaps the striking arm and keeps the hammer aligned in both detail levels', 
         attach(object, socket);
       } }, body, hand, 'hammer');
       try {
-        figure.pose(hand === 'handLeft' ? left : right);
+        const actions = createEquipmentActions();
+        actions.equip(hand, equipmentItems.hammer);
+        expect(actions.use(hand, 0)).toBe('started');
+        figure.pose(createMotion('walk').poseAt(0.3, body, actions.layersAt(0.3)));
         figure.setDetail('high');
         const position = holder!.getWorldPosition(new Vector3());
         const forward = holder!.localToWorld(new Vector3(0, 1, 0));
@@ -75,8 +73,22 @@ it('swaps the striking arm and keeps the hammer aligned in both detail levels', 
   }
 });
 
-it('chooses the hand with equipment that supports the action', () => {
-  expect(actionHand({ handLeft: 'shield', handRight: 'sword' }, 'work')).toBeUndefined();
-  expect(actionHand({ handLeft: 'hammer', handRight: 'shield' }, 'work')).toBe('handLeft');
-  expect(actionHand({ handLeft: 'shield', handRight: 'hammer' }, 'work')).toBe('handRight');
+it('layers sword and shield independently over walk and rejects a swing while carrying', () => {
+  const actions = createEquipmentActions();
+  expect(actions.use('handRight', 0)).toBe('no-action');
+  actions.equip('handLeft', equipmentItems.shield);
+  actions.equip('handRight', equipmentItems.sword);
+  expect(actions.use('handRight', 0, carryArms().joints)).toBe('busy');
+  expect(actions.use('handLeft', 0)).toBe('started');
+  expect(actions.use('handRight', 0)).toBe('started');
+  expect(actions.use('handRight', 0.1)).toBe('busy');
+  const motion = createMotion('walk');
+  const base = motion.poseAt(0.35);
+  const layered = motion.poseAt(0.35, undefined, actions.layersAt(0.35));
+  expect(layered.turns.shoulderRight).not.toEqual(base.turns.shoulderRight);
+  expect(layered.turns.shoulderLeft).not.toEqual(base.turns.shoulderLeft);
+  expect(layered.turns.hipRight).toEqual(base.turns.hipRight);
+  expect(layered.lift).toBe(base.lift);
+  expect(actions.layersAt(0.7).map(layer => layer.joints)).toEqual([['shoulderLeft', 'elbowLeft']]);
+  expect(actions.layersAt(1)).toEqual([]);
 });

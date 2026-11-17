@@ -23,7 +23,7 @@ import {
 import { createFigure, type Figure } from '../rendering/figure';
 import type { HeldProp } from '../rendering/props/pieces';
 import { holdProp } from '../rendering/props/props';
-import { actionHand } from '../../packages/voxel-actors/src';
+import { createEquipmentActions, equipmentItems } from '../../packages/voxel-actors/src';
 import { equipItem } from '../rendering/props/equipment';
 import { clothColors, hairColors, roleColors, skinTones } from './palette';
 import { createPanel, type StudioState } from './panel';
@@ -68,6 +68,7 @@ function startStudio(): void {
   };
   // Kept across rebuilds, so a new body carries on with what the old one was doing.
   const motion = createMotion(state.clip);
+  const equipmentActions = createEquipmentActions();
 
   const layout = document.createElement('main');
   layout.className = 'workspace';
@@ -120,11 +121,13 @@ function startStudio(): void {
   let markers: SocketMarkers | null = null;
   let prop: HeldProp | null = null;
   let equipped: HeldProp[] = [];
-  let workHand = actionHand(state.equipment, 'work');
   let builtAppearance = '';
   let attachedClip: StudioState['clip'] | undefined;
   const canLayerCarry = (): boolean => state.clip === 'idle' || state.clip === 'walk';
   const isLayeredCarry = (): boolean => state.carryLayer && canLayerCarry();
+  const carryJoints = carryArms().joints;
+  let carryWeight = 0;
+  const reservedJoints = () => prop !== null || carryWeight > 0 ? carryJoints : [];
   const rebuild = (): void => {
     guide.visible = state.guide;
     const propClip = isLayeredCarry() ? 'carry' : state.clip;
@@ -162,10 +165,10 @@ function startStudio(): void {
     equipped = [];
     for (const hand of ['handLeft', 'handRight'] as const) {
       const name = state.equipment[hand];
+      equipmentActions.equip(hand, name === null ? null : equipmentItems[name]);
       if (name !== null) equipped.push(equipItem(figure, body, hand, name));
     }
     for (const item of equipped) item.show(prop === null);
-    workHand = actionHand(state.equipment, 'work');
     scene.add(figure.root);
     guide.visible = state.guide;
   };
@@ -174,7 +177,8 @@ function startStudio(): void {
   const detailCenter = new Vector3();
   const detailCameraSpace = new Vector3();
   layout.append(stage);
-  const panel = createPanel(layout, state, rebuild, view);
+  const panel = createPanel(layout, state, rebuild, view,
+    hand => equipmentActions.use(hand, performance.now() / MS, reservedJoints()));
   rebuild();
   view('threeQuarter');
 
@@ -187,7 +191,6 @@ function startStudio(): void {
   }).observe(stage);
 
   let previousFrame: number | undefined;
-  let carryWeight = 0;
   const frame = (now: number): void => {
     const seconds = now / MS;
     const blendStep = (seconds - (previousFrame ?? seconds)) / CARRY_BLEND_SECONDS;
@@ -196,13 +199,10 @@ function startStudio(): void {
     else if (isLayeredCarry()) carryWeight = Math.min(1, carryWeight + blendStep);
     else carryWeight = Math.max(0, carryWeight - blendStep);
     // Picking another motion glides into it. Asking for the one already playing changes nothing.
-    let clip: Parameters<typeof motion.play>[0] = state.clip;
-    if (state.clip === 'work') {
-      clip = workHand === undefined ? 'idle' : workHand === 'handLeft' ? 'workLeft' : 'work';
-    }
-    motion.play(clip, seconds);
+    motion.play(state.clip, seconds);
     if (figure !== null && body !== null) {
-      const layers = carryWeight > 0 ? [carryArms(carryWeight)] : undefined;
+      const layers = equipmentActions.layersAt(seconds, reservedJoints());
+      if (carryWeight > 0) layers.push(carryArms(carryWeight));
       figure.pose(motion.poseAt(seconds, body, layers));
       // Held things show once the arms have glided into the pose that holds them.
       prop?.show(isLayeredCarry() ? carryWeight === 1 : !motion.gliding(seconds));
@@ -224,9 +224,8 @@ function startStudio(): void {
       const threshold = reducedDetail ? RESTORE_ABOVE_PX : REDUCE_BELOW_PX;
       reducedDetail = state.detail === 'low' || (state.detail === 'auto' && screenHeight < threshold);
       figure.setDetail(reducedDetail ? 'low' : 'high');
-      const workHint = state.clip === 'work' && workHand === undefined ? ' · Equip a hammer to work' : '';
       panel.setReadout(body.height + ' voxels · ' + (body.height * METRES_PER_VOXEL).toFixed(2)
-        + ' m · ' + (reducedDetail ? 'Reduced detail' : 'Full detail') + workHint);
+        + ' m · ' + (reducedDetail ? 'Reduced detail' : 'Full detail'));
     }
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
