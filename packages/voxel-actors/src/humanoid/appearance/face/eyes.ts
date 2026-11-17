@@ -1,6 +1,6 @@
 import type { FaceArea } from '../../body.js';
 import type { Box } from '../../model.js';
-import { EYE_MASK, faceLayout, LAYER } from './layout.js';
+import { EYE_MASK, FACE_SURFACE_OFFSET, faceLayout, LAYER } from './layout.js';
 
 /** Rounded eyes fitted to the face plane, using the study's proportions. */
 export function createRoundedEyes(area: FaceArea, lashes: boolean): readonly Box[] {
@@ -14,7 +14,7 @@ export function createRoundedEyes(area: FaceArea, lashes: boolean): readonly Box
         const outerCorner = row === 0 && column === (side < 0 ? 0 : line.length - 1);
         if (pixel === '.' && !(lashes && outerCorner)) continue;
         boxes.push({
-          at: [left + column * unit, top - (row + 1) * unit, area.front + 0.01 - depth],
+          at: [left + column * unit, top - (row + 1) * unit, area.front + FACE_SURFACE_OFFSET - depth],
           size: [unit, unit, depth],
           role: pixel === 'R' ? 'eyeIris' : 'eye',
         });

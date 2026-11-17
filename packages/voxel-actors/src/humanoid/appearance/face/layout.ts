@@ -2,6 +2,7 @@ import type { FaceArea } from '../../body.js';
 
 // A face lies on the head like a decal: features are this thin, in voxels.
 export const LAYER = 0.15;
+export const FACE_SURFACE_OFFSET = 0.01;
 
 export const EYE_MASK = ['.EEEE.', 'EEEEEE', 'EEEEEE', 'EEEEEE', '.RRRR.'];
 

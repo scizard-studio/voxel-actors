@@ -2,7 +2,7 @@ import type { FaceArea, Gender } from '../body.js';
 import type { Box } from '../model.js';
 import { createFlatBrows, createWorriedBrows } from './face/brows.js';
 import { createEyeShapes } from './face/eyes.js';
-import { faceLayout, LAYER } from './face/layout.js';
+import { createBlush } from './face/blush.js';
 import { createMouthShapes } from './face/mouth.js';
 import { createSmallNose } from './face/nose.js';
 
@@ -59,18 +59,13 @@ const BLINK_SECONDS = 0.13;
 const BLINK_SPREAD_SECONDS = 1.3;
 
 function layout(area: FaceArea, options: FaceOptions): FaceShapes {
-  const { unit, center, top, halfSpacing } = faceLayout(area);
   return {
     brows: { flat: createFlatBrows(area), worried: createWorriedBrows(area) },
     eyes: createEyeShapes(area, options.lashes),
     nose: { small: createSmallNose(area) },
     mouth: createMouthShapes(area),
     blush: {
-      on: options.blush ? [-1, 1].map((side): Box => ({
-        at: [center + side * halfSpacing - 2 * unit, top - 7 * unit, area.front],
-        size: [4 * unit, unit, LAYER],
-        role: 'cheek',
-      })) : [],
+      on: options.blush ? createBlush(area) : [],
       off: [],
     },
   };
