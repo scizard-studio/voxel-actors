@@ -17,7 +17,7 @@ import { miller } from './miller.js';
 import { painted, type Paint } from './paint.js';
 import { policeman } from './policeman.js';
 import { porter } from './porter.js';
-import { redDress } from './redDress.js';
+import { frock } from './frock.js';
 import { religiousLeader } from './religiousLeader.js';
 import { romper } from './romper.js';
 import { shepherd } from './shepherd.js';
@@ -49,6 +49,7 @@ export const everydayOutfits = {
   tankAndShorts,
   romper,
   jumpsuit,
+  frock,
 } satisfies Record<string, Outfit>;
 
 /**
@@ -77,7 +78,7 @@ export const workOutfits = {
 } satisfies Record<string, Outfit>;
 
 /** Every outfit, by name, in the order they are offered. */
-export const outfits = { ...everydayOutfits, goldGown, redDress, ...workOutfits };
+export const outfits = { ...everydayOutfits, goldGown, ...workOutfits };
 
 export type EverydayOutfitName = keyof typeof everydayOutfits;
 export type WorkOutfitName = keyof typeof workOutfits;
@@ -91,7 +92,11 @@ export interface Dressed extends Body {
 
 /** Compose a custom outfit without modifying the registry or the source body. */
 export function applyOutfit(body: Body, outfit: Outfit, color?: number): Dressed {
-  const colors = color === undefined ? { ...outfit.colors } : { ...outfit.colors, top: color };
+  const colors = { ...outfit.colors };
+  if (color !== undefined) {
+    colors.top = color;
+    if (colors.clothShade !== undefined) colors.clothShade = shadeCloth(color);
+  }
   const worn = outfit.build?.(body) ?? [];
   const joints = new Set(body.joints.map(joint => joint.name));
   for (const piece of worn) {
@@ -103,6 +108,11 @@ export function applyOutfit(body: Body, outfit: Outfit, color?: number): Dressed
     }
   }
   return { ...body, parts: painted(body.parts, outfit.paint), colors, worn };
+}
+
+function shadeCloth(color: number): number {
+  const channel = (shift: number) => Math.round(((color >> shift) & 0xff) * 0.76) << shift;
+  return channel(16) | channel(8) | channel(0);
 }
 
 /**

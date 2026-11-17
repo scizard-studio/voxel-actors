@@ -1,7 +1,10 @@
-import { between } from '../../model.js';
+import { between, mirrored } from '../../model.js';
 import type { Outfit } from './outfits.js';
 
-export const redDress: Outfit = {
+const BODICE_OVERHANG = 0.22;
+const SLEEVE_GAP = 0.03;
+
+export const frock: Outfit = {
   paint: { waist: 'top', hips: 'top', feet: 'shoes', handLeft: 'top', handRight: 'top' },
   hat: 'roseCrown',
   colors: { top: 0xc91c24, clothShade: 0x991721, shoes: 0xad1620 },
@@ -9,16 +12,14 @@ export const redDress: Outfit = {
     const bodiceTop = waist[1] + chest[1] * 0.76;
     const halfChest = chest[0] / 2;
     const chestFront = chest[2] / 2;
+    const strap = between([halfChest * 0.6, bodiceTop, -chestFront - 0.17],
+      [halfChest + BODICE_OVERHANG, waist[1] + chest[1] + 0.12, chestFront + 0.17], 'top');
     const bodice = [
-      between([-halfChest - 0.22, waist[1], -chestFront - 0.22],
-        [halfChest + 0.22, bodiceTop, chestFront + 0.22], 'top'),
+      between([-halfChest - BODICE_OVERHANG, waist[1], -chestFront - BODICE_OVERHANG],
+        [halfChest + BODICE_OVERHANG, bodiceTop, chestFront + BODICE_OVERHANG], 'top'),
+      strap,
+      mirrored(strap),
     ];
-    for (const side of [-1, 1]) {
-      const x = side * halfChest * 0.8;
-      const strapHalfWidth = halfChest * 0.2;
-      bodice.push(between([x - strapHalfWidth, bodiceTop, -chestFront - 0.17],
-        [x + strapHalfWidth, waist[1] + chest[1] + 0.12, chestFront + 0.17], 'top'));
-    }
 
     const hem = -leg.upper * 0.83;
     const skirt = [];
@@ -37,13 +38,13 @@ export const redDress: Outfit = {
     }
 
     const armHalf = arm.thick / 2;
-    const sleeve = between([-armHalf - 0.15, armHalf - arm.upper * 0.43, -armHalf - 0.2],
+    const sleeve = between([-armHalf + BODICE_OVERHANG + SLEEVE_GAP, armHalf - arm.upper * 0.43, -armHalf - 0.2],
       [armHalf + 0.15, armHalf + 0.18, armHalf + 0.2], 'top');
     return [
       { joint: 'waist', boxes: bodice },
       { joint: 'pelvis', boxes: skirt },
       { joint: 'shoulderLeft', boxes: [sleeve] },
-      { joint: 'shoulderRight', boxes: [sleeve] },
+      { joint: 'shoulderRight', boxes: [mirrored(sleeve)] },
     ];
   },
 };

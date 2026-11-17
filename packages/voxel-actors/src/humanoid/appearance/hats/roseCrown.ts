@@ -20,9 +20,11 @@ export function roseCrown(head: HeadShape): Box[] {
   function bloom(axis: 'x' | 'z', center: number, surface: number, outward: number) {
     function tile(u: number, v: number, width: number, height: number, depth: number, role: Role) {
       const tip = surface + outward * depth;
+      const near = Math.min(surface, tip);
+      const far = Math.max(surface, tip);
       boxes.push(axis === 'z'
-        ? between([u, v, surface], [u + width, v + height, tip], role)
-        : between([surface, v, u], [tip, v + height, u + width], role));
+        ? between([u, v, near], [u + width, v + height, far], role)
+        : between([near, v, u], [far, v + height, u + width], role));
     }
     const left = center - ROSE[0].length * PETAL_SIZE / 2;
     tile(left - 0.45, y - 0.35, 0.65, 0.7, 0.45, 'roseLeaf');

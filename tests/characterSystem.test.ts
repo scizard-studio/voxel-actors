@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import {
   createBody, colorOf, defaultPalette, bodyRegions, isBodyRegion, oppositeRegion, measureBody,
-  measureSolids, resolveProportions, applyOutfit, dress, outfits,
+  measureSolids, resolveProportions, applyOutfit, createHat, dress, outfits,
   CHARACTER_SCALE, metresPerVoxel, voxelScaleFactor,
   type Age, type Gender, type BodyRegionId, type BodySpec, type BodyBox, type JointName,
 } from '../packages/voxel-actors/src';
@@ -108,6 +108,18 @@ it('preserves all registered outfits across all presets', () => {
     }
     expect(dressed.worn.length > 0).toBe('build' in outfits[name]);
     expect(body.parts.flatMap(part => part.boxes).every(box => box.role === 'skin')).toBe(true);
+  }
+});
+
+it('builds rose crown petals with positive dimensions on every side', () => {
+  for (const age of ages) for (const gender of genders) {
+    const { head } = createBody({ age, gender });
+    const { boxes } = createHat('roseCrown', head);
+    const petals = boxes.filter(box => box.role === 'rosePetal');
+    expect(petals.length).toBeGreaterThan(0);
+    expect(boxes.every(box => box.size.every(size => Number.isFinite(size) && size > 0))).toBe(true);
+    expect(petals.some(box => box.at[0] + box.size[0] < -head.width / 2)).toBe(true);
+    expect(petals.some(box => box.at[2] + box.size[2] < -head.depth / 2)).toBe(true);
   }
 });
 
