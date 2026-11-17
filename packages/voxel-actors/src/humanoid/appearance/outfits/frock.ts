@@ -5,7 +5,7 @@ const BODICE_OVERHANG = 0.22;
 const ARM_SIDE_TRIM = 1;
 const SLEEVE_GAP = 0.03;
 
-export const squareNeckDress: Outfit = {
+export const frock: Outfit = {
   paint: { waist: 'top', hips: 'top', feet: 'shoes', handLeft: 'top', handRight: 'top' },
   hat: 'roseCrown',
   colors: { top: 0xc91c24, clothShade: 0x991721, shoes: 0xad1620 },

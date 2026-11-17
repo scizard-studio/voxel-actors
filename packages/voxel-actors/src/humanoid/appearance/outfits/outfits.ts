@@ -20,7 +20,7 @@ import { porter } from './porter.js';
 import { religiousLeader } from './religiousLeader.js';
 import { romper } from './romper.js';
 import { shepherd } from './shepherd.js';
-import { squareNeckDress } from './squareNeckDress.js';
+import { frock } from './frock.js';
 import { storekeeper } from './storekeeper.js';
 import { tailor } from './tailor.js';
 import { tankAndShorts } from './tankAndShorts.js';
@@ -49,7 +49,7 @@ export const everydayOutfits = {
   tankAndShorts,
   romper,
   jumpsuit,
-  squareNeckDress,
+  frock,
 } satisfies Record<string, Outfit>;
 
 /**
