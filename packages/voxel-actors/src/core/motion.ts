@@ -1,4 +1,5 @@
 import type { Rig } from './model.js';
+import { layerPose, type PoseLayer } from './layers.js';
 import { blendPoses, clipPose, onRig, type Clip, type Pose } from './pose.js';
 
 /** A change of motion glides over this long, in seconds. */
@@ -14,7 +15,7 @@ export interface Motion<N extends string = string> {
   /** Starts another clip at a moment. The body glides from wherever it is into the new clip. */
   play(clip: N, seconds: number): void;
   /** The pose at a moment, laid on the rig if one is given. Moments must not go backward. */
-  poseAt(seconds: number, rig?: Rig): Pose;
+  poseAt(seconds: number, rig?: Rig, layers?: readonly PoseLayer[]): Pose;
   /** True while still gliding into the clip: anything held in the clip's pose is not in place yet. */
   gliding(seconds: number): boolean;
   /** How far into the clip being played, in seconds: what anything moving with the clip keeps time with. */
@@ -69,9 +70,10 @@ export function createMotion<N extends string>(clips: Readonly<Record<N, Clip>>,
       current = next;
       startedAt = at;
     },
-    poseAt(at, rig) {
+    poseAt(at, rig, layers) {
       const share = grounded(at);
-      const pose = bare(at);
+      const base = bare(at);
+      const pose = layers?.length ? layerPose(base, layers) : base;
       return rig === undefined ? pose : onRig(pose, rig, share);
     },
     gliding(at) {

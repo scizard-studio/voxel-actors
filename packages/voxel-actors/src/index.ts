@@ -12,6 +12,8 @@
  * folder beside it.
  */
 export { blendPoses } from './core/pose.js';
+export { layerPose } from './core/layers.js';
+export type { PoseLayer } from './core/layers.js';
 export type { Pose } from './core/pose.js';
 export { createBody, resolveProportions } from './humanoid/body.js';
 export type { Age, Body, BodySpec, Proportions, ProportionOverrides, EarPlace, FaceArea, Gender, HeadShape, Posture, Socket, SocketName } from './humanoid/body.js';
@@ -27,6 +29,7 @@ export type { AnatomyMeasurements, RegionMeasurements } from './humanoid/anatomy
 export { CHARACTER_SCALE, metresPerVoxel, voxelScaleFactor } from './core/units.js';
 export type { VoxelScale } from './core/units.js';
 export { carryingRoom } from './humanoid/clips/carry/load.js';
+export { carryArms } from './humanoid/clips/carry/index.js';
 export type { Room } from './humanoid/clips/carry/load.js';
 export { clips, poseAt } from './humanoid/clips/clips.js';
 export type { ClipName } from './humanoid/clips/clips.js';

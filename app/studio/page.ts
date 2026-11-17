@@ -2,6 +2,7 @@ import { Color, DirectionalLight, HemisphereLight, PCFShadowMap, PerspectiveCame
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import {
   clips,
+  carryArms,
   createBody,
   createFace,
   createHair,
@@ -30,6 +31,7 @@ import { METRES_PER_VOXEL, createScaleGuide } from '../rendering/scaleGuide';
 import { addSocketMarkers, type SocketMarkers } from '../rendering/socketMarkers';
 
 const MS = 1000;
+const CARRY_BLEND_SECONDS = 0.25;
 // Where the camera looks: about the chest of an adult.
 const LOOK_AT_Y = 20;
 const VIEWS = {
@@ -58,6 +60,7 @@ function startStudio(): void {
     hat: null,
     expression: 'normal',
     clip: 'idle',
+    carryLayer: false,
     equipment: { handLeft: null, handRight: null },
     guide: true,
     sockets: false,
@@ -120,16 +123,19 @@ function startStudio(): void {
   let workHand = actionHand(state.equipment, 'work');
   let builtAppearance = '';
   let attachedClip: StudioState['clip'] | undefined;
+  const canLayerCarry = (): boolean => state.clip === 'idle' || state.clip === 'walk';
+  const isLayeredCarry = (): boolean => state.carryLayer && canLayerCarry();
   const rebuild = (): void => {
     guide.visible = state.guide;
+    const propClip = isLayeredCarry() ? 'carry' : state.clip;
     const appearanceKey = JSON.stringify([
       state.age, state.gender, state.tone, state.hair, state.hairColor,
       state.outfit, state.clothColor, state.hat, state.sockets,
       state.equipment.handLeft, state.equipment.handRight,
     ]);
-    if (builtAppearance === appearanceKey && attachedClip === state.clip) return;
+    if (builtAppearance === appearanceKey && attachedClip === propClip) return;
     builtAppearance = appearanceKey;
-    attachedClip = state.clip;
+    attachedClip = propClip;
     if (figure !== null) {
       scene.remove(figure.root);
       figure.dispose();
@@ -152,7 +158,7 @@ function startStudio(): void {
     const colors = roleColors(skinTones[state.tone], hairColors[state.hairColor], dressed?.colors);
     figure = createFigure(body, face, worn, { palette: colors });
     markers = state.sockets ? addSocketMarkers(figure, body.sockets) : null;
-    prop = holdProp(figure, body, worn, state.clip);
+    prop = holdProp(figure, body, worn, propClip);
     equipped = [];
     for (const hand of ['handLeft', 'handRight'] as const) {
       const name = state.equipment[hand];
@@ -180,8 +186,15 @@ function startStudio(): void {
     camera.updateProjectionMatrix();
   }).observe(stage);
 
+  let previousFrame: number | undefined;
+  let carryWeight = 0;
   const frame = (now: number): void => {
     const seconds = now / MS;
+    const blendStep = (seconds - (previousFrame ?? seconds)) / CARRY_BLEND_SECONDS;
+    previousFrame = seconds;
+    if (!canLayerCarry()) carryWeight = 0;
+    else if (isLayeredCarry()) carryWeight = Math.min(1, carryWeight + blendStep);
+    else carryWeight = Math.max(0, carryWeight - blendStep);
     // Picking another motion glides into it. Asking for the one already playing changes nothing.
     let clip: Parameters<typeof motion.play>[0] = state.clip;
     if (state.clip === 'work') {
@@ -189,9 +202,10 @@ function startStudio(): void {
     }
     motion.play(clip, seconds);
     if (figure !== null && body !== null) {
-      figure.pose(motion.poseAt(seconds, body));
+      const layers = carryWeight > 0 ? [carryArms(carryWeight)] : undefined;
+      figure.pose(motion.poseAt(seconds, body, layers));
       // Held things show once the arms have glided into the pose that holds them.
-      prop?.show(!motion.gliding(seconds));
+      prop?.show(isLayeredCarry() ? carryWeight === 1 : !motion.gliding(seconds));
       prop?.update(motion.elapsed(seconds));
       // A motion may move the face too, as talking moves the mouth.
       const face = faceAt(state.expression, seconds);

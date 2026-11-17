@@ -32,6 +32,7 @@ export interface StudioState {
   hat: HatStyleName | null;
   expression: ExpressionName;
   clip: ClipName;
+  carryLayer: boolean;
   equipment: Equipment;
   detail: 'auto' | 'high' | 'low';
   guide: boolean;
@@ -202,6 +203,10 @@ export function createPanel(
     state.clip,
     set('clip'),
   );
+  segmented(panel, 'Crate hold · Idle / Walk', [
+    { value: false, name: 'Off' },
+    { value: true, name: 'Hold crate' },
+  ], state.carryLayer, set('carryLayer'));
   for (const [hand, title] of [['handLeft', 'Left hand'], ['handRight', 'Right hand']] as const) {
     const items = (Object.keys(equipmentItems) as EquipmentName[])
       .filter(name => equipmentItems[name].hands.includes(hand));
