@@ -1,6 +1,7 @@
 import { BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group, Mesh, MeshLambertMaterial, type Object3D } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { colorOf, type Appearance, type Body, type Box, type Face, type FaceState, type FeatureName, type JointName, type Pose, type Socket, type Worn } from './packages/characters/src';
+import { sculptGeometry } from './character-study/voxelGeometry';
 
 /** A character drawn with Three.js, one voxel to one unit. It stands on y = 0 and faces +z. */
 export interface Figure {
@@ -9,6 +10,7 @@ export interface Figure {
   pose(pose: Pose): void;
   /** Shows the face as it is at this moment: one shape for every feature. */
   showFace(state: FaceState): void;
+  setDetail(detail: 'high' | 'low'): void;
   /** Hangs an object on a socket: it sits on the socket's spot and moves with the socket's joint. */
   attach(object: Object3D, socket: Socket): void;
   /** Frees the figure's own meshes. Whoever attached an object frees that object. */
@@ -59,8 +61,32 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], appe
     joints.get(joint)?.add(mesh);
     return mesh;
   };
-  for (const part of body.parts) addMesh(part.boxes, part.joint);
-  for (const piece of worn) if (piece.boxes.length > 0) addMesh(piece.boxes, piece.joint);
+  const solidMeshes: Mesh[] = [];
+  const jointBoxes = new Map<JointName, Box[]>();
+  for (const piece of [...body.parts, ...worn]) {
+    if (piece.boxes.length === 0) continue;
+    solidMeshes.push(addMesh(piece.boxes, piece.joint));
+    const boxes = jointBoxes.get(piece.joint) ?? [];
+    boxes.push(...piece.boxes);
+    jointBoxes.set(piece.joint, boxes);
+  }
+  let reducedMeshes: Mesh[] | undefined;
+  let currentDetail: 'high' | 'low' = 'high';
+  function buildReducedMeshes(): Mesh[] {
+    return [...jointBoxes].map(([joint, boxes]) => {
+      const geometry = sculptGeometry(boxes.map(box => ({
+        min: [...box.at],
+        max: [box.at[0] + box.size[0], box.at[1] + box.size[1], box.at[2] + box.size[2]],
+        color: colorOf(box, appearance),
+      })), 0.5);
+      geometries.push(geometry);
+      const mesh = new Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      joints.get(joint)?.add(mesh);
+      return mesh;
+    });
+  }
 
   const faceMeshes: { feature: FeatureName; shape: string; mesh: Mesh }[] = [];
   for (const [feature, byShape] of Object.entries(face.shapes) as [FeatureName, Record<string, readonly Box[]>][]) {
@@ -84,6 +110,13 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], appe
     },
     showFace(state) {
       for (const { feature, shape, mesh } of faceMeshes) mesh.visible = state[feature] === shape;
+    },
+    setDetail(detail) {
+      if (detail === currentDetail) return;
+      currentDetail = detail;
+      reducedMeshes ??= buildReducedMeshes();
+      for (const mesh of solidMeshes) mesh.visible = detail === 'high';
+      for (const mesh of reducedMeshes) mesh.visible = detail === 'low';
     },
     attach(object, socket) {
       object.position.set(...socket.at);

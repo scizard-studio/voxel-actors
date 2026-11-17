@@ -31,6 +31,7 @@ export interface StudioState {
   hat: HatStyleName | null;
   expression: ExpressionName;
   clip: ClipName;
+  detail: 'auto' | 'high' | 'low';
   guide: boolean;
   /** Whether the attachment points, the body's sockets, are marked. */
   sockets: boolean;
@@ -102,7 +103,10 @@ export function createPanel(
   title.textContent = 'Character Studio';
   const readout = document.createElement('p');
   readout.className = 'studio__readout';
-  panel.append(title, readout);
+  const anatomy = document.createElement('a');
+  anatomy.href = '/anatomy';
+  anatomy.textContent = 'Open Anatomy';
+  panel.append(title, readout, anatomy);
 
   const set =
     <K extends keyof StudioState>(key: K) =>
@@ -232,9 +236,15 @@ export function createPanel(
     viewRow.append(button);
   }
 
+  segmented(panel, 'Level of detail', [
+    { value: 'auto', name: 'Auto' },
+    { value: 'high', name: 'Full' },
+    { value: 'low', name: 'Reduced' },
+  ], state.detail, set('detail'));
+
   return {
     setReadout(text) {
-      readout.textContent = text;
+      if (readout.textContent !== text) readout.textContent = text;
     },
   };
 }
