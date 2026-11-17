@@ -9,6 +9,7 @@ import { farmer } from './farmer.js';
 import { forester } from './forester.js';
 import { healer } from './healer.js';
 import { herbalist } from './herbalist.js';
+import { goldGown } from './goldGown.js';
 import { hunter } from './hunter.js';
 import { jumpsuit } from './jumpsuit.js';
 import { longSleevesAndTrousers } from './longSleevesAndTrousers.js';
@@ -75,7 +76,7 @@ export const workOutfits = {
 } satisfies Record<string, Outfit>;
 
 /** Every outfit, by name, in the order they are offered. */
-export const outfits = { ...everydayOutfits, ...workOutfits };
+export const outfits = { ...everydayOutfits, goldGown, ...workOutfits };
 
 export type EverydayOutfitName = keyof typeof everydayOutfits;
 export type WorkOutfitName = keyof typeof workOutfits;

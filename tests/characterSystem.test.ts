@@ -104,7 +104,7 @@ it('preserves all registered outfits across all presets', () => {
       const ids = expectedRegions[group as keyof typeof expectedRegions];
       expect(dressed.parts.flatMap(part => part.boxes).filter(box => ids.includes(box.region)).every(box => box.role === role)).toBe(true);
     }
-    expect(dressed.worn).toEqual([]);
+    expect(dressed.worn.length > 0).toBe('build' in outfits[name]);
     expect(body.parts.flatMap(part => part.boxes).every(box => box.role === 'skin')).toBe(true);
   }
 });

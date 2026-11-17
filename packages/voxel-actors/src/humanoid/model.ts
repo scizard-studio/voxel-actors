@@ -26,7 +26,10 @@ export type Role =
   | 'hatBand'
   | 'top'
   | 'bottom'
-  | 'shoes';
+  | 'shoes'
+  | 'clothShade'
+  | 'cape'
+  | 'trim';
 
 /**
  * A solid block of a person. Body blocks are whole voxels in size. Face blocks
