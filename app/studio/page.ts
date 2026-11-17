@@ -22,8 +22,7 @@ import {
 } from '../../packages/voxel-actors/src';
 import { createFigure, type Figure } from '../rendering/figure';
 import type { HeldProp } from '../rendering/props/pieces';
-import { holdProp } from '../rendering/props/props';
-import { holdCrate } from '../rendering/props/crate';
+import { holdProp, propMotion } from '../rendering/props/props';
 import { createEquipmentActions, equipmentItems } from '../../packages/voxel-actors/src';
 import { equipItem } from '../rendering/props/equipment';
 import { clothColors, hairColors, roleColors, skinTones } from './palette';
@@ -123,13 +122,13 @@ function startStudio(): void {
   let prop: HeldProp | null = null;
   let equipped: HeldProp[] = [];
   let builtAppearance = '';
-  let attachedProp: StudioState['clip'] | 'crate' | undefined;
+  let attachedProp: StudioState['prop'] | undefined;
   const carryJoints = carryArms().joints;
   let carryWeight = 0;
   const reservedJoints = () => prop !== null || carryWeight > 0 ? carryJoints : [];
   const rebuild = (): void => {
     guide.visible = state.guide;
-    const propKey = state.prop === 'crate' ? 'crate' : state.clip;
+    const propKey = state.prop;
     const appearanceKey = JSON.stringify([
       state.age, state.gender, state.tone, state.hair, state.hairColor,
       state.outfit, state.clothColor, state.hat, state.sockets,
@@ -160,7 +159,7 @@ function startStudio(): void {
     const colors = roleColors(skinTones[state.tone], hairColors[state.hairColor], dressed?.colors);
     figure = createFigure(body, face, worn, { palette: colors });
     markers = state.sockets ? addSocketMarkers(figure, body.sockets) : null;
-    prop = propKey === 'crate' ? holdCrate(figure, body) : holdProp(figure, body, worn, state.clip);
+    prop = holdProp(figure, body, worn, propKey);
     equipped = [];
     for (const hand of ['handLeft', 'handRight'] as const) {
       const name = state.equipment[hand];
@@ -198,7 +197,8 @@ function startStudio(): void {
     else if (prop === null) carryWeight = Math.max(0, carryWeight - blendStep);
     else carryWeight = 0;
     // Picking another motion glides into it. Asking for the one already playing changes nothing.
-    motion.play(state.clip, seconds);
+    const clip = propMotion(state.prop) ?? state.clip;
+    motion.play(clip, seconds);
     if (figure !== null && body !== null) {
       const layers = equipmentActions.layersAt(seconds, reservedJoints());
       if (carryWeight > 0) layers.push(carryArms(carryWeight));
@@ -208,7 +208,7 @@ function startStudio(): void {
       prop?.update(motion.elapsed(seconds));
       // A motion may move the face too, as talking moves the mouth.
       const face = faceAt(state.expression, seconds);
-      const moving = clips[state.clip].face;
+      const moving = clips[clip].face;
       figure.showFace(moving === undefined ? face : moving(face, motion.elapsed(seconds), 0));
     }
     controls.update();

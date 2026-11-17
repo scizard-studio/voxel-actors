@@ -32,7 +32,7 @@ export interface StudioState {
   hat: HatStyleName | null;
   expression: ExpressionName;
   clip: ClipName;
-  prop: 'none' | 'crate';
+  prop: StudioProp;
   equipment: Equipment;
   detail: 'auto' | 'high' | 'low';
   guide: boolean;
@@ -199,7 +199,12 @@ export function createPanel(
     state.expression,
     set('expression'),
   );
-  const motionChoices = (Object.keys(clips) as ClipName[]).map((clip) => ({ value: clip, name: label(clip) }));
+  const propChoices = (Object.keys(studioProps) as StudioProp[])
+    .map(value => ({ value, name: studioProps[value].label }));
+  const propClips = new Set(propChoices.map(choice => propMotion(choice.value)));
+  const motionChoices = (Object.keys(clips) as ClipName[])
+    .filter(clip => !propClips.has(clip))
+    .map(clip => ({ value: clip, name: label(clip) }));
   const motionButtons = segmented(
     panel,
     'Movement and activities',
@@ -207,10 +212,7 @@ export function createPanel(
     state.clip,
     set('clip'),
   );
-  const propButtons = segmented(panel, 'Props', [
-    { value: 'none', name: 'None' },
-    { value: 'crate', name: 'Crate' },
-  ], state.prop, set('prop'));
+  const propButtons = segmented(panel, 'Props', propChoices, state.prop, set('prop'));
   const propStatus = document.createElement('p');
   propStatus.setAttribute('role', 'status');
   propStatus.className = 'studio__readout';
@@ -235,16 +237,21 @@ export function createPanel(
   actions.parentElement!.append(actionStatus);
   function updateActions(): void {
     const holdingCrate = state.prop === 'crate';
+    const activity = propMotion(state.prop);
+    const handsReserved = holdingCrate || activity !== undefined;
     const supportsCrate = (clip: ClipName): boolean => clip === 'idle' || clip === 'walk';
-    propButtons[1].disabled = !supportsCrate(state.clip);
-    propStatus.textContent = holdingCrate ? 'Both hands occupied.' : propButtons[1].disabled ? 'Crate is available with Idle or Walk.' : '';
-    for (const button of handButtons) button.disabled = holdingCrate;
+    const crateButton = propButtons[propChoices.findIndex(choice => choice.value === 'crate')];
+    crateButton.disabled = !supportsCrate(state.clip);
+    propStatus.textContent = holdingCrate ? 'Both hands occupied.'
+      : activity ? `${studioProps[state.prop].label} controls movement and arms.`
+      : crateButton.disabled ? 'Crate is available with Idle or Walk.' : '';
+    for (const button of handButtons) button.disabled = handsReserved;
     for (const [index, button] of motionButtons.entries()) {
-      button.disabled = holdingCrate && !supportsCrate(motionChoices[index].value);
+      button.disabled = activity !== undefined || (holdingCrate && !supportsCrate(motionChoices[index].value));
     }
     actions.replaceChildren();
     actionStatus.textContent = '';
-    if (holdingCrate) {
+    if (handsReserved) {
       actions.parentElement!.hidden = true;
       return;
     }
@@ -309,3 +316,4 @@ export function createPanel(
     },
   };
 }
+import { propMotion, studioProps, type StudioProp } from '../rendering/props/props';

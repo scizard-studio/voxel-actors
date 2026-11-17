@@ -1,5 +1,6 @@
 import type { Body, ClipName, Worn } from '../../../packages/voxel-actors/src';
 import type { Figure } from '../figure';
+import { holdCrate } from './crate';
 import { holdHoop } from './hoop';
 import type { HeldProp } from './pieces';
 import { holdRope } from './rope';
@@ -7,17 +8,27 @@ import { holdRope } from './rope';
 /** Puts a prop on a figure, fitted to the body and to what it wears. */
 type PropMaker = (figure: Figure, body: Body, worn: readonly Worn[]) => HeldProp;
 
-/**
- * The prop that shows each motion off. Motions not listed show nothing. A new
- * prop is a new file in this folder, listed here. Studio show only: the game
- * brings its own things.
- */
-const props: Partial<Record<ClipName, PropMaker>> = {
-  hulaHoop: holdHoop,
-  ropeSkip: holdRope,
-};
+interface PropOption {
+  readonly label: string;
+  readonly motion?: ClipName;
+  readonly attach?: PropMaker;
+}
 
-/** Puts the prop for a clip on the figure, if the clip has one. */
-export function holdProp(figure: Figure, body: Body, worn: readonly Worn[], clip: ClipName): HeldProp | null {
-  return props[clip]?.(figure, body, worn) ?? null;
+export const studioProps = {
+  none: { label: 'None' },
+  crate: { label: 'Crate', attach: holdCrate },
+  ropeSkip: { label: 'Jump rope', motion: 'ropeSkip', attach: holdRope },
+  hulaHoop: { label: 'Hula hoop', motion: 'hulaHoop', attach: holdHoop },
+} satisfies Record<string, PropOption>;
+
+export type StudioProp = keyof typeof studioProps;
+
+export function propMotion(prop: StudioProp): ClipName | undefined {
+  const option: PropOption = studioProps[prop];
+  return option.motion;
+}
+
+export function holdProp(figure: Figure, body: Body, worn: readonly Worn[], prop: StudioProp): HeldProp | null {
+  const option: PropOption = studioProps[prop];
+  return option.attach?.(figure, body, worn) ?? null;
 }
