@@ -3,6 +3,7 @@ import { applyFootwear, type FootwearStyleName } from '../footwear/footwear.js';
 import type { HatStyleName } from '../hats/hats.js';
 import type { Role, Worn } from '../../model.js';
 import { baker } from './baker.js';
+import { bridalGown } from './bridalGown.js';
 import { builder } from './builder.js';
 import { butcher } from './butcher.js';
 import { cook } from './cook.js';
@@ -83,7 +84,7 @@ export const workOutfits = {
 } satisfies Record<string, Outfit>;
 
 /** Every outfit, by name, in the order they are offered. */
-export const outfits = { ...everydayOutfits, goldGown, ...workOutfits };
+export const outfits = { ...everydayOutfits, goldGown, bridalGown, ...workOutfits };
 
 export type EverydayOutfitName = keyof typeof everydayOutfits;
 export type WorkOutfitName = keyof typeof workOutfits;
