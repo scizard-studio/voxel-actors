@@ -4,35 +4,34 @@ import {
   createBody, createFace, expressions, faceBoxes, faceOptionsFor, colorOf, measureBody, isBodyRegion,
   type Age, type Gender, type BodyRegionId, type Box, type ExpressionName, type FaceState, type JointName,
 } from '../../packages/voxel-actors/src';
+import { ages, dropdown, expressions as expressionChoices, genders, panelHeader, panelSection } from '../panel';
 import { renderInspector, formatVoxelCount } from './inspector';
 
 document.title = 'Character Anatomy';
 document.body.insertAdjacentHTML('beforeend', `
-  <main class="workspace"><section class="workspace-stage" aria-label="Interactive character body"><div class="stage-heading"><h1>Character Anatomy</h1><p>Select a part to explore its anatomy.</p></div><div class="canvas-host"></div><div class="view-hint">Drag to rotate <span>·</span> Scroll to zoom</div></section>
-  <aside class="workspace-panel" aria-label="Body part information"><div class="inspector-content"><div class="panel-top"><span class="eyebrow">INSPECTOR</span><span class="status-dot"></span></div><div class="inspector-controls"></div><div id="details" aria-live="polite"></div></div><footer class="panel-note">Original Studio body<br><span id="body-preset"></span><div id="total-voxels"></div></footer></aside></main>`);
+  <main class="workspace">
+    <section class="workspace-stage" aria-label="Interactive character body">
+      <div class="canvas-host"></div>
+      <div class="view-hint">Drag to rotate <span>·</span> Scroll to zoom</div>
+    </section>
+    <aside class="workspace-panel" aria-label="Body part information">
+      <div class="panel-content"></div>
+      <footer class="panel-footer"></footer>
+    </aside>
+  </main>`);
 const host = document.querySelector<HTMLDivElement>('.canvas-host')!;
-const details = document.querySelector<HTMLDivElement>('#details')!;
-const controlsPanel = document.querySelector('.inspector-controls')!;
-function addPicker(label: string, choices: readonly (readonly [string, string])[], initial: string): HTMLSelectElement {
-  const field = document.createElement('label');
-  field.textContent = label;
-  const input = document.createElement('select');
-  for (const [value, text] of choices) input.add(new Option(text, value));
-  input.value = initial;
-  field.append(input);
-  controlsPanel.append(field);
-  return input;
-}
-const genderPicker = addPicker('Gender', [['female', 'Female'], ['male', 'Male']], 'female');
-const agePicker = addPicker('Age', [
-  ['child', 'Child'], ['teen', 'Teen'], ['adult', 'Adult'], ['elder', 'Elder'], ['aged', 'Aged'],
-], 'adult');
-const expressionPicker = addPicker('Expression', [
-  ['normal', 'Neutral'], ['happy', 'Happy'], ['smiling', 'Smiling'], ['sad', 'Sad'], ['blink', 'Blink'],
-], 'normal');
-const picker = addPicker('Body part', [], '');
-const bodyPreset = document.querySelector('#body-preset')!;
-const totalVoxels = document.querySelector('#total-voxels')!;
+const panel = document.querySelector<HTMLDivElement>('.panel-content')!;
+const footer = document.querySelector<HTMLElement>('.panel-footer')!;
+panel.append(panelHeader('Character Anatomy', 'Inspect body parts and measurements.'));
+const appearance = panelSection(panel, 'Appearance');
+const genderPicker = dropdown(appearance, 'Gender', genders, 'female');
+const agePicker = dropdown(appearance, 'Age', ages, 'adult');
+const expressionPicker = dropdown(appearance, 'Expression', [...expressionChoices, ['blink', 'Blink']], 'normal');
+const picker = dropdown<string>(appearance, 'Body Part', [], '');
+const details = panelSection(panel, 'Selected part');
+const measurements = document.createElement('div');
+measurements.setAttribute('aria-live', 'polite');
+details.append(measurements);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 host.append(renderer.domElement);
@@ -91,12 +90,7 @@ function rebuildBody(): void {
   showFace();
   picker.replaceChildren(new Option('Select a body part', ''));
   for (const region of anatomy.regions) picker.add(new Option(region.label, region.id));
-  bodyPreset.textContent = [
-    agePicker.selectedOptions[0].text,
-    genderPicker.selectedOptions[0].text,
-    body.height + ' voxels tall',
-  ].join(' · ');
-  totalVoxels.textContent = formatVoxelCount(anatomy.total.voxelVolume);
+  footer.textContent = body.height + ' voxels tall · ' + formatVoxelCount(anatomy.total.voxelVolume) + ' total';
   select(selectedRegion);
   controls.target.y = body.height / 2;
   controls.update();
@@ -110,7 +104,7 @@ function select(id?: BodyRegionId): void {
     mesh.material.color.setHex(selected ? SELECTION_COLOR : mesh.userData.baseColor);
   }
   picker.value = region?.id ?? '';
-  renderInspector(details, region);
+  renderInspector(measurements, region);
 }
 picker.addEventListener('change', () => select(picker.value === '' ? undefined : picker.value as BodyRegionId));
 const camera = new THREE.OrthographicCamera(-24, 24, 24, -24, 0.1, 500);

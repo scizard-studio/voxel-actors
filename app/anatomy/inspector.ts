@@ -8,13 +8,11 @@ export function formatVoxelCount(volume: number): string {
 
 export function renderInspector(container: HTMLElement, region?: RegionMeasurements): void {
   if (!region) {
-    container.innerHTML = '<div class="empty-icon">⌖</div><h2>Start with a part.</h2><p class="description">Click the character to see its dimensions, voxel count, position, and connected joint.</p><div class="empty-line"></div><p class="small-note">Measurements describe the unposed base body.</p>';
+    container.innerHTML = '<p class="panel-status">Select a body part to inspect it.</p>';
     return;
   }
   container.innerHTML = `
-    <div class="selected-tag">SELECTED PART</div>
     <h2>${region.label}</h2>
-    <p class="description">A piece of the original Studio base body.</p>
     <div class="voxel-count"><strong>${formatVoxelCount(region.voxelVolume)}</strong><span>Solid volume · overlaps counted once</span></div>
     <h3>Dimensions <span>VOXELS</span></h3>
     <div class="metrics">${['Width', 'Height', 'Depth'].map((label, i) => `<div><strong>${number.format(region.size[i])}</strong><span>${label}</span></div>`).join('')}</div>

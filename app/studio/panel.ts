@@ -12,6 +12,7 @@ import {
   type HatStyleName,
   type OutfitName,
 } from '../../packages/voxel-actors/src';
+import { ages, dropdown, expressions, genders, panelHeader, panelSection, type Choice } from '../panel';
 import { clothColors, hairColors, skinTones } from './palette';
 import { equipmentItems, type Equipment, type EquipmentHand, type EquipmentName, type UseResult } from '../../packages/voxel-actors/src';
 
@@ -46,53 +47,15 @@ export interface Panel {
   setReadout(text: string): void;
 }
 
-interface Choice<T> {
-  readonly value: T;
-  readonly name: string;
-}
+import { propMotion, studioProps, type StudioProp } from '../rendering/props/props';
 
-/** A name from the code as a label: "pixieCut" becomes "Pixie cut". */
-function label(name: string): string {
-  const words = name.replace(/([A-Z])/g, ' $1').toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
-/** A titled block of the panel. Returns the row its buttons go in. */
-function section(parent: HTMLElement, title: string): HTMLElement {
-  const block = document.createElement('section');
-  block.className = 'studio__section';
-  const heading = document.createElement('h2');
-  heading.className = 'studio__heading';
-  heading.textContent = title;
-  const row = document.createElement('div');
-  row.className = 'studio__row';
-  block.append(heading, row);
-  parent.append(block);
-  return row;
-}
-
-/** A row of buttons, one of them pressed. Pressing another calls `onPick`. */
-function segmented<T>(parent: HTMLElement, title: string, choices: readonly Choice<T>[], start: T, onPick: (value: T) => void): HTMLButtonElement[] {
-  const row = section(parent, title);
-  const buttons = choices.map((choice) => {
-    const button = document.createElement('button');
-    button.className = 'control';
-    button.textContent = choice.name;
-    button.setAttribute('aria-pressed', String(choice.value === start));
-    button.addEventListener('click', () => {
-      for (const other of buttons) other.setAttribute('aria-pressed', String(other === button));
-      onPick(choice.value);
-    });
-    row.append(button);
-    return button;
+function choices<T extends string>(names: readonly T[]): Choice<T>[] {
+  return names.map(name => {
+    const words = name.replace(/([A-Z])/g, ' $1').toLowerCase();
+    return [name, words.charAt(0).toUpperCase() + words.slice(1)];
   });
-  return buttons;
 }
 
-/**
- * The studio's controls. Every change goes into `state`, then `onChange` is
- * called. `onView` is called to put the camera in front or at three-quarters.
- */
 export function createPanel(
   container: HTMLElement,
   state: StudioState,
@@ -101,222 +64,112 @@ export function createPanel(
   onUse: (hand: EquipmentHand) => UseResult,
 ): Panel {
   const panel = document.createElement('aside');
-  panel.className = 'workspace-panel studio__panel';
+  panel.className = 'workspace-panel';
+  const content = document.createElement('div');
+  content.className = 'panel-content';
+  content.append(panelHeader('Character Studio', 'Customize and animate a character.'));
+  const footer = document.createElement('footer');
+  footer.className = 'panel-footer';
+  panel.append(content, footer);
   container.append(panel);
 
-  const title = document.createElement('h1');
-  title.className = 'studio__title';
-  title.textContent = 'Character Studio';
-  const readout = document.createElement('p');
-  readout.className = 'studio__readout';
-  panel.append(title, readout);
+  const set = <K extends keyof StudioState>(key: K) => (value: StudioState[K]): void => {
+    state[key] = value;
+    onChange();
+    updateControls();
+  };
 
-  const set =
-    <K extends keyof StudioState>(key: K) =>
-    (value: StudioState[K]): void => {
-      state[key] = value;
-      onChange();
-      updateActions();
-    };
+  const appearance = panelSection(content, 'Appearance');
+  dropdown(appearance, 'Gender', genders, state.gender, set('gender'));
+  dropdown(appearance, 'Age', ages, state.age, set('age'));
+  dropdown(appearance, 'Expression', expressions, state.expression, set('expression'));
+  dropdown(appearance, 'Skin', skinTones.map((tone, index) => [index, tone.name]), state.tone, set('tone'));
+  dropdown<HairStyleName | null>(appearance, 'Hair', [[null, 'None'], ...choices(Object.keys(hairStyles) as HairStyleName[])], state.hair, set('hair'));
+  const hairColor = dropdown(appearance, 'Hair Color', hairColors.map((color, index) => [index, color.name]), state.hairColor, set('hairColor'));
 
-  segmented(
-    panel,
-    'Age',
-    [
-      { value: 'child', name: 'Child' },
-      { value: 'teen', name: 'Teen' },
-      { value: 'adult', name: 'Adult' },
-      { value: 'elder', name: 'Elder' },
-      { value: 'aged', name: 'Aged' },
-    ],
-    state.age,
-    set('age'),
-  );
-  segmented(
-    panel,
-    'Gender',
-    [
-      { value: 'female', name: 'Female' },
-      { value: 'male', name: 'Male' },
-    ],
-    state.gender,
-    set('gender'),
-  );
-  segmented(
-    panel,
-    'Skin',
-    skinTones.map((tone, index) => ({ value: index, name: tone.name })),
-    state.tone,
-    set('tone'),
-  );
-  // Every hairstyle in the library is offered, so a new style shows here without changing the studio.
-  segmented<HairStyleName | null>(
-    panel,
-    'Hair',
-    [
-      ...(Object.keys(hairStyles) as HairStyleName[]).map((style) => ({ value: style, name: label(style) })),
-      { value: null, name: 'None' },
-    ],
-    state.hair,
-    set('hair'),
-  );
-  segmented(
-    panel,
-    'Hair color',
-    hairColors.map((color, index) => ({ value: index, name: color.name })),
-    state.hairColor,
-    set('hairColor'),
-  );
-  segmented<OutfitName | null>(
-    panel,
-    'Outfit',
-    [{ value: null, name: 'None' }, ...(Object.keys(outfits) as OutfitName[]).map((outfit) => ({ value: outfit, name: label(outfit) }))],
-    state.outfit,
-    set('outfit'),
-  );
-  const clothColorButtons = segmented<number | null>(
-    panel,
-    'Cloth color',
-    [{ value: null, name: 'Own' }, ...clothColors.map((color, index) => ({ value: index, name: color.name }))],
-    state.clothColor,
-    set('clothColor'),
-  );
-  segmented<HatStyleName | null>(
-    panel,
-    'Hat',
-    [{ value: null, name: 'None' }, ...(Object.keys(hatStyles) as HatStyleName[]).map((hat) => ({ value: hat, name: label(hat) }))],
-    state.hat,
-    set('hat'),
-  );
-  segmented(
-    panel,
-    'Expression',
-    [
-      { value: 'normal', name: 'Normal' },
-      { value: 'happy', name: 'Happy' },
-      { value: 'smiling', name: 'Smiling' },
-      { value: 'sad', name: 'Sad' },
-    ],
-    state.expression,
-    set('expression'),
-  );
-  const propChoices = (Object.keys(studioProps) as StudioProp[])
-    .map(value => ({ value, name: studioProps[value].label }));
-  const propClips = new Set(propChoices.map(choice => propMotion(choice.value)));
-  const motionChoices = (Object.keys(clips) as ClipName[])
-    .filter(clip => !propClips.has(clip))
-    .map(clip => ({ value: clip, name: label(clip) }));
-  const motionButtons = segmented(
-    panel,
-    'Movement and activities',
-    motionChoices,
-    state.clip,
-    set('clip'),
-  );
-  const propButtons = segmented(panel, 'Props', propChoices, state.prop, set('prop'));
+  const outfit = panelSection(content, 'Outfit');
+  dropdown<OutfitName | null>(outfit, 'Outfit', [[null, 'None'], ...choices(Object.keys(outfits) as OutfitName[])], state.outfit, set('outfit'));
+  const clothColor = dropdown<number | null>(outfit, 'Cloth color',
+    [[null, 'Default'], ...clothColors.map((color, index): Choice<number> => [index, color.name])],
+    state.clothColor, set('clothColor'));
+  dropdown<HatStyleName | null>(outfit, 'Hat', [[null, 'Outfit default'], ...choices(Object.keys(hatStyles) as HatStyleName[])], state.hat, set('hat'));
+
+  const propChoices = (Object.keys(studioProps) as StudioProp[]).map((name): Choice<StudioProp> => [name, studioProps[name].label]);
+  const propClips = new Set(propChoices.map(([name]) => propMotion(name)));
+  const movement = panelSection(content, 'Movement');
+  const motion = dropdown(movement, 'Motion', choices((Object.keys(clips) as ClipName[]).filter(clip => !propClips.has(clip))), state.clip, set('clip'));
+  const props = panelSection(content, 'Props');
+  const prop = dropdown(props, 'Prop', propChoices, state.prop, set('prop'));
   const propStatus = document.createElement('p');
+  propStatus.className = 'panel-status';
   propStatus.setAttribute('role', 'status');
-  propStatus.className = 'studio__readout';
-  propButtons[0].closest('section')!.append(propStatus);
-  const handButtons: HTMLButtonElement[] = [];
-  for (const [hand, title] of [['handLeft', 'Left hand'], ['handRight', 'Right hand']] as const) {
+  props.append(propStatus);
+
+  const equipment = panelSection(content, 'Equipment');
+  const hands = [['handLeft', 'Left'], ['handRight', 'Right']] as const;
+  const handFields = hands.map(([hand, side]) => {
     const items = (Object.keys(equipmentItems) as EquipmentName[])
       .filter(name => equipmentItems[name].hands.includes(hand));
-    handButtons.push(...segmented<EquipmentName | null>(panel, title, [
-      { value: null, name: 'Empty' },
-      ...items.map(value => ({ value, name: equipmentItems[value].label })),
+    return dropdown<EquipmentName | null>(equipment, side + ' hand', [
+      [null, 'Empty'],
+      ...items.map((name): Choice<EquipmentName> => [name, equipmentItems[name].label]),
     ], state.equipment[hand], value => {
       state.equipment[hand] = value;
       onChange();
-      updateActions();
-    }));
-  }
-  const actions = section(panel, 'Equipment actions');
+      updateControls();
+    });
+  });
+
+  const actions = panelSection(content, 'Equipment actions');
+  const actionButtons = document.createElement('div');
+  actionButtons.className = 'panel-actions';
   const actionStatus = document.createElement('p');
+  actionStatus.className = 'panel-status';
   actionStatus.setAttribute('role', 'status');
-  actionStatus.className = 'studio__readout';
-  actions.parentElement!.append(actionStatus);
-  function updateActions(): void {
-    const canRecolor = state.outfit !== null && state.outfit in everydayOutfits;
-    for (const button of clothColorButtons) button.disabled = !canRecolor;
+  actions.append(actionButtons, actionStatus);
+
+  function updateControls(): void {
+    clothColor.disabled = state.outfit === null || !(state.outfit in everydayOutfits);
+    hairColor.disabled = state.hair === null;
     const holdingCrate = state.prop === 'crate';
     const activity = propMotion(state.prop);
     const handsReserved = holdingCrate || activity !== undefined;
-    const supportsCrate = (clip: ClipName): boolean => clip === 'idle' || clip === 'walk';
-    const crateButton = propButtons[propChoices.findIndex(choice => choice.value === 'crate')];
-    crateButton.disabled = !supportsCrate(state.clip);
+    const supportsCrate = (clip: string): boolean => clip === 'idle' || clip === 'walk';
+    const crateOption = [...prop.options].find(option => option.value === 'crate')!;
+    crateOption.disabled = !supportsCrate(state.clip);
     propStatus.textContent = holdingCrate ? 'Both hands occupied.'
-      : activity ? `${studioProps[state.prop].label} controls movement and arms.`
-      : crateButton.disabled ? 'Crate is available with Idle or Walk.' : '';
-    for (const button of handButtons) button.disabled = handsReserved;
-    for (const [index, button] of motionButtons.entries()) {
-      button.disabled = activity !== undefined || (holdingCrate && !supportsCrate(motionChoices[index].value));
-    }
-    actions.replaceChildren();
+      : activity ? studioProps[state.prop].label + ' controls movement and arms.'
+      : crateOption.disabled ? 'Crate is available with Idle or Walk.' : '';
+    for (const input of handFields) input.disabled = handsReserved;
+    motion.disabled = activity !== undefined;
+    for (const option of motion.options) option.disabled = holdingCrate && !supportsCrate(option.value);
+    actionButtons.replaceChildren();
     actionStatus.textContent = '';
-    if (handsReserved) {
-      actions.parentElement!.hidden = true;
-      return;
-    }
-    for (const [hand, side] of [['handLeft', 'Left'], ['handRight', 'Right']] as const) {
+    if (!handsReserved) for (const [hand, side] of hands) {
       const name = state.equipment[hand];
       const item = name === null ? undefined : equipmentItems[name];
       if (!item?.action) continue;
       const button = document.createElement('button');
       button.className = 'control';
-      button.textContent = `${side}: ${item.action.label} (${item.label})`;
+      button.textContent = side + ': ' + item.action.label + ' (' + item.label + ')';
       button.addEventListener('click', () => {
-        const result = onUse(hand);
-        actionStatus.textContent = result === 'busy' ? 'Required arm is busy.' : '';
+        actionStatus.textContent = onUse(hand) === 'busy' ? 'Required arm is busy.' : '';
       });
-      actions.append(button);
+      actionButtons.append(button);
     }
-    actions.parentElement!.hidden = actions.childElementCount === 0;
-  }
-  updateActions();
-  segmented(
-    panel,
-    'Size guide',
-    [
-      { value: true, name: 'Wall and door' },
-      { value: false, name: 'Hidden' },
-    ],
-    state.guide,
-    set('guide'),
-  );
-  segmented(
-    panel,
-    'Attachment points',
-    [
-      { value: true, name: 'Shown' },
-      { value: false, name: 'Hidden' },
-    ],
-    state.sockets,
-    set('sockets'),
-  );
-
-  const viewRow = section(panel, 'View');
-  for (const [view, name] of [
-    ['front', 'Front'],
-    ['threeQuarter', 'Three-quarter'],
-  ] as const) {
-    const button = document.createElement('button');
-    button.className = 'control';
-    button.textContent = name;
-    button.addEventListener('click', () => onView(view));
-    viewRow.append(button);
+    actions.hidden = actionButtons.childElementCount === 0;
   }
 
-  segmented(panel, 'Level of detail', [
-    { value: 'auto', name: 'Auto' },
-    { value: 'high', name: 'Full' },
-    { value: 'low', name: 'Reduced' },
-  ], state.detail, set('detail'));
+  const preview = panelSection(content, 'Preview');
+  dropdown(preview, 'Size guide', [[true, 'Wall and door'], [false, 'Hidden']], state.guide, set('guide'));
+  dropdown(preview, 'Attachment points', [[true, 'Shown'], [false, 'Hidden']], state.sockets, set('sockets'));
+  dropdown(preview, 'View', [['threeQuarter', 'Three-quarter'], ['front', 'Front']], 'threeQuarter', onView);
+  dropdown(preview, 'Level of detail', [['auto', 'Auto'], ['high', 'Full'], ['low', 'Reduced']], state.detail, set('detail'));
+  updateControls();
 
   return {
     setReadout(text) {
-      if (readout.textContent !== text) readout.textContent = text;
+      if (footer.textContent !== text) footer.textContent = text;
     },
   };
 }
-import { propMotion, studioProps, type StudioProp } from '../rendering/props/props';

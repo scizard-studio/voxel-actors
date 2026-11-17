@@ -80,21 +80,6 @@ body {
   overflow:hidden
 }
 
-.stage-heading {
-  position:absolute;
-  top:30px;
-  left:36px;
-  z-index:1;
-  pointer-events:none
-}
-
-.eyebrow {
-  font-size:10px;
-  letter-spacing:1.8px;
-  color:#839087;
-  font-weight:650
-}
-
 h1 {
   font-size:26px;
   font-weight:500;
@@ -102,15 +87,9 @@ h1 {
   margin:10px 0 7px
 }
 
-.stage-heading p {
-  margin:0;
-  font-size:12px;
-  color:#88938b
-}
-
 .canvas-host {
   position:absolute;
-  inset:115px 0 40px
+  inset:0 0 40px
 }
 
 .workspace-stage canvas {
@@ -141,24 +120,10 @@ h1 {
   flex-direction:column
 }
 
-.inspector-content {
+.panel-content {
   flex:1;
   min-height:0;
   overflow:auto;
-}
-
-.panel-top {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:32px
-}
-
-.status-dot {
-  width:6px;
-  height:6px;
-  background:#8eab9c;
-  border-radius:50%
 }
 
 h2 {
@@ -168,36 +133,11 @@ h2 {
   margin:12px 0
 }
 
-.description {
-  font-size:12px;
-  line-height:1.8;
-  color:#89938d;
-  margin:0 0 28px
-}
-
-.empty-icon {
-  font-size:38px;
-  color:#b7c9bd;
-  margin-top:30px
-}
-
-.empty-line {
-  height:1px;
-  background:#eef1eb;
-  margin:35px 0 20px
-}
-
 .small-note {
   font-size:10px;
   color:#99a29c;
   line-height:1.8;
   margin-top:24px
-}
-
-.selected-tag {
-  font-size:9px;
-  letter-spacing:1.5px;
-  color:#548b7c
 }
 
 h3 {
@@ -282,25 +222,7 @@ h3 span {
   margin-right:7px
 }
 
-.inspector-controls {
-  display:grid;
-  gap:12px;
-  margin-bottom:24px;
-}
-
-.inspector-controls label {
-  display:block;
-  font-size:9px;
-  letter-spacing:1.3px;
-  color:#95a096;
-  margin-bottom:9px
-}
-
-.inspector-controls select {
-  margin-top:5px;
-}
-
-select,
+.field-select,
 .control {
   padding:11px;
   border:1px solid var(--border);
@@ -311,13 +233,13 @@ select,
   font-size:12px
 }
 
-select:focus-visible,
+.field-select:focus-visible,
 .control:focus-visible {
   outline:2px solid #77bcb0;
   outline-offset:2px
 }
 
-.panel-note {
+.panel-footer {
   flex-shrink:0;
   margin-top:16px;
   padding-top:14px;
@@ -325,18 +247,6 @@ select:focus-visible,
   font-size:11px;
   line-height:1.8;
   color:#6e7f72
-}
-
-.panel-note span {
-  font-size:10px;
-  color:#a0aaa1
-}
-
-#total-voxels {
-  margin-top:10px;
-  color:#456b5d;
-  font-size:14px;
-  font-weight:600;
 }
 
 .voxel-count {
@@ -371,61 +281,17 @@ select:focus-visible,
     height:65dvh;
     min-height:430px
   }
-  .stage-heading {
-    top:20px;
-    left:20px
-  }
   .canvas-host {
-    inset:100px 0 35px
+    inset:0 0 35px
   }
   .workspace-panel {
     border-left:0;
     border-top:1px solid #e2e7df;
     padding:24px
   }
-  .panel-top {
-    margin-bottom:15px
-  }
-  .empty-icon {
-    margin-top:0
-  }
-  .panel-note {
+  .panel-footer {
     padding-top:24px
   }
-}
-
-.studio__title {
-  margin: 0;
-  font-size: 22px;
-}
-
-.studio__readout {
-  margin: 4px 0 6px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.studio__section {
-  margin-top: 16px;
-}
-
-.studio__heading {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.studio__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-
-.studio__panel {
-  overflow:auto;
 }
 
 .studio__stage canvas {
@@ -447,7 +313,7 @@ select:focus-visible,
   opacity:0.55;
 }
 
-select {
+.field-select {
   width:100%;
 }
 
@@ -456,4 +322,56 @@ select {
     min-height:340px;
     height:52dvh;
   }
+}
+
+.panel-title {
+  margin:0;
+  font-size:24px;
+}
+
+.panel-subtitle,
+.panel-status {
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.panel-status:empty {
+  display:none;
+}
+
+.panel-section {
+  margin-top:20px;
+  padding-top:14px;
+  border-top:1px solid var(--border);
+}
+
+.panel-section-title {
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:650;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+}
+
+.field {
+  display:grid;
+  gap:5px;
+  margin-top:10px;
+}
+
+.field-label {
+  font-size:12px;
+}
+
+.field-select:disabled {
+  opacity:0.55;
+}
+
+.panel-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
 }
