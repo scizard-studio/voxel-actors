@@ -1,11 +1,10 @@
 import { expect, it } from 'vitest';
 import {
   createBody, colorOf, defaultPalette, bodyRegions, isBodyRegion, oppositeRegion, measureBody,
-  measureSolids, resolveProportions, applyFootwear, applyOutfit, createHat, dress, outfits,
+  measureSolids, resolveProportions, applyFootwear, applyOutfit, createHat, dress,
   CHARACTER_SCALE, metresPerVoxel, voxelScaleFactor,
-  type Age, type Gender, type BodyRegionId, type BodySpec, type BodyBox, type JointName,
+  type Age, type Gender, type BodyRegionId, type BodySpec, type JointName,
 } from '../packages/voxel-actors/src';
-import { painted } from '../packages/voxel-actors/src/humanoid/appearance/outfits/paint';
 import { roleColors, skinTones, hairColors } from '../app/studio/palette';
 
 const palette = roleColors(skinTones[0], hairColors[0]);
@@ -74,41 +73,6 @@ it('provides default appearance without caller setup and accepts partial overrid
   expect(colorOf(ear, { palette: { skinShade: 0x123456 } })).toBe(0x123456);
   expect(colorOf(chest, { regions: { chest: 0x123456 } })).toBe(0x123456);
   expect(colorOf(chest)).toBe(defaultPalette.skin);
-});
-
-it('keeps region painting correct after boxes are reordered or subdivided', () => {
-  const body = createBody(spec);
-  const torso = body.parts.find(part => part.name === 'torso')!;
-  const chest = torso.boxes.find(box => box.region === 'chest')!;
-  const half: BodyBox = { ...chest, size: [chest.size[0], chest.size[1] / 2, chest.size[2]] };
-  const split = [half, { ...half, at: [half.at[0], half.at[1] + half.size[1], half.at[2]] as const }];
-  const parts = [{ ...torso, boxes: [...torso.boxes.filter(box => box !== chest), ...split].reverse() }];
-  const result = painted(parts, { chest: 'top', neck: 'hatBand' });
-  for (const box of result[0].boxes) expect(box.role).toBe(box.region === 'chest' ? 'top' : box.region === 'neck' ? 'hatBand' : 'skin');
-  expect(parts[0].boxes.every(box => box.role === 'skin')).toBe(true);
-  const legs = painted(body.parts, { feet: 'shoes', footLeft: 'top' }).flatMap(part => part.boxes);
-  expect(legs.find(box => box.region === 'footLeft')?.role).toBe('top');
-  expect(legs.find(box => box.region === 'footRight')?.role).toBe('shoes');
-});
-
-it('preserves all registered outfits across all presets', () => {
-  const expectedRegions = {
-    hips: ['hips'], waist: ['waist'], chest: ['chest'],
-    upperArms: ['upperArmLeft', 'upperArmRight'], forearms: ['forearmLeft', 'forearmRight'],
-    thighs: ['thighLeft', 'thighRight'], shins: ['shinLeft', 'shinRight'], feet: ['footLeft', 'footRight'],
-  };
-  for (const age of ages) for (const gender of genders) for (const name of Object.keys(outfits) as (keyof typeof outfits)[]) {
-    const body = createBody({ age, gender });
-    const dressed = dress(body, name);
-    for (const [group, role] of Object.entries(outfits[name].paint)) {
-      const ids = expectedRegions[group as keyof typeof expectedRegions] ?? [group];
-      const paintedBoxes = dressed.parts.flatMap(part => part.boxes).filter(box => ids.includes(box.region));
-      expect(paintedBoxes.length).toBeGreaterThan(0);
-      expect(paintedBoxes.every(box => box.role === role)).toBe(true);
-    }
-    expect(dressed.worn.length > 0).toBe('build' in outfits[name]);
-    expect(body.parts.flatMap(part => part.boxes).every(box => box.role === 'skin')).toBe(true);
-  }
 });
 
 it('swaps footwear without changing the outfit geometry or colors', () => {
