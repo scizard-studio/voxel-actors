@@ -34,9 +34,11 @@ export const goldGown: Outfit = {
     add(upper, 'top', 0, -0.2, 0, waist[0] + 0.45, waist[1] + 0.2, waist[2] + 0.45);
     const bodiceDepth = chest[2] + 0.45;
     add(upper, 'top', 0, waist[1], 0, chest[0] + 0.45, chest[1] * 0.8, bodiceDepth);
+    const strapBottom = waist[1] + chest[1] * 0.8;
+    const strapHeight = chest[1] * 0.24;
     for (const side of [-1, 1]) {
-      add(upper, 'top', side * chest[0] * 0.35, waist[1] + chest[1] * 0.8, 0,
-        chest[0] * 0.13, chest[1] * 0.24, bodiceDepth);
+      add(upper, 'top', side * chest[0] * 0.35, strapBottom, 0,
+        chest[0] * 0.13, strapHeight, bodiceDepth);
     }
     for (const x of [-chest[0] / 4, 0, chest[0] / 4]) {
       const y = waist[1] + chest[1] * 0.36;
@@ -58,9 +60,12 @@ export const goldGown: Outfit = {
       }
     }
     // Shoulder ties and clasp sit over the top edge of the bodice.
+    const tieBottom = capeTop - 0.3;
+    const tieTop = Math.max(capeTop + 0.2, strapBottom + strapHeight + 0.15);
     for (const side of [-1, 1]) {
-      add(upper, 'cape', side * chest[0] * 0.32, capeTop - 0.3, 0, 0.75, 0.5, bodiceDepth + 0.65);
-      add(upper, 'cape', side * chest[0] * 0.32, capeTop - 1.05, bodiceDepth / 2 + 0.15, 0.75, 0.95, 0.3);
+      add(upper, 'cape', side * chest[0] * 0.32, tieBottom, 0, 0.75, tieTop - tieBottom, bodiceDepth + 0.65);
+      const dropBottom = capeTop - 1.05;
+      add(upper, 'cape', side * chest[0] * 0.32, dropBottom, bodiceDepth / 2 + 0.15, 0.75, tieBottom - dropBottom, 0.3);
     }
     add(upper, 'trim', 0, capeTop - 1.25, bodiceDepth / 2 + 0.14, 0.55, 0.55, 0.28);
     return [{ joint: 'pelvis', boxes: skirt }, { joint: 'waist', boxes: upper }];
