@@ -92,7 +92,10 @@ export function createFigure(body: Body, face: Face, worn: readonly Worn[], appe
   for (const [feature, byShape] of Object.entries(face.shapes) as [FeatureName, Record<string, readonly Box[]>][]) {
     for (const [shape, boxes] of Object.entries(byShape)) {
       // A shape such as "no blush" has nothing to draw.
-      if (boxes.length > 0) faceMeshes.push({ feature, shape, mesh: addMesh(boxes, face.joint) });
+      if (boxes.length === 0) continue;
+      const mesh = addMesh(boxes, face.joint);
+      if (feature === 'eyes' || feature === 'blush') mesh.castShadow = false;
+      faceMeshes.push({ feature, shape, mesh });
     }
   }
 
