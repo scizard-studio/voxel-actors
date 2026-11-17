@@ -49,10 +49,11 @@ export interface Panel {
 
 import { propMotion, studioProps, type StudioProp } from '../rendering/props/props';
 
-function choices<T extends string>(names: readonly T[]): Choice<T>[] {
+function choices<T extends string>(names: readonly T[], titleCase = false): Choice<T>[] {
   return names.map(name => {
     const words = name.replace(/([A-Z])/g, ' $1').toLowerCase();
-    return [name, words.charAt(0).toUpperCase() + words.slice(1)];
+    const label = words.replace(titleCase ? /\b[a-z]/g : /^[a-z]/, letter => letter.toUpperCase());
+    return [name, label];
   });
 }
 
@@ -88,7 +89,8 @@ export function createPanel(
   const hairColor = dropdown(appearance, 'Hair Color', hairColors.map((color, index) => [index, color.name]), state.hairColor, set('hairColor'));
 
   const outfit = panelSection(content, 'Outfit');
-  dropdown<OutfitName | null>(outfit, 'Outfit', [[null, 'None'], ...choices(Object.keys(outfits) as OutfitName[])], state.outfit, set('outfit'));
+  const outfitChoices = choices(Object.keys(outfits) as OutfitName[], true);
+  dropdown<OutfitName | null>(outfit, 'Outfit', [[null, 'None'], ...outfitChoices], state.outfit, set('outfit'));
   const clothColor = dropdown<number | null>(outfit, 'Cloth color',
     [[null, 'Default'], ...clothColors.map((color, index): Choice<number> => [index, color.name])],
     state.clothColor, set('clothColor'));
