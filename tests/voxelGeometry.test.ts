@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { sculptGeometry } from '../app/rendering/voxelGeometry';
 
+// Overlapping boxes should produce only outer faces, so reduced detail avoids hidden or duplicate geometry.
 it('emits only the exterior of overlapping blocks, even across different colors', () => {
   const geometry = sculptGeometry([
     { min: [0, 0, 0], max: [2, 2, 2], color: 0xff0000 },

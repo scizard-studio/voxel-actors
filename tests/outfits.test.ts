@@ -4,6 +4,7 @@ import { createBody, dress, outfits, type Age, type Gender, type OutfitName } fr
 const ages: readonly Age[] = ['child', 'teen', 'adult', 'elder', 'aged'];
 const genders: readonly Gender[] = ['female', 'male'];
 
+// Build every outfit on every preset to catch failures on characters we did not preview.
 it('builds every outfit for every age and gender preset', () => {
   const outfitNames = Object.keys(outfits) as OutfitName[];
   for (const age of ages) {

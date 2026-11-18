@@ -28,6 +28,7 @@ function allowed(file: string, spec: string): boolean {
   return library ? insideLibrary : path.startsWith('app/') || path === 'packages/voxel-actors/src';
 }
 
+// Check import boundaries so the library can run without Studio or Three.js.
 it('uses only its own files, the character library and Three.js', () => {
   const outside: string[] = [];
   for (const [file, text] of Object.entries(sources)) {
