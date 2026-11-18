@@ -1,6 +1,7 @@
 {
   "name": "voxel-actors",
   "version": "0.1.0",
+  "description": "Renderer-independent voxel characters, outfits, equipment, and animation for games.",
   "type": "module",
   "files": ["dist"],
   "exports": {
@@ -11,6 +12,6 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "prepack": "npm run build"
+    "prepack": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && npm run build"
   }
 }
